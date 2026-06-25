@@ -2,7 +2,7 @@
 
 > [**中文**](README_CN.md) | English
 
-**Cocoon Breaking Plan** — Declarative Service Invocation Governance Middleware for Java Microservices.
+Declarative Service Invocation Governance Middleware for Java Microservices.
 
 Spider = **Declarative Remote Call** + **Elastic Governance** + **Contract Protection** + **Observability**
 
