@@ -128,6 +128,8 @@ public interface PayClient {
 
 控制台：独立部署的 `spider-console`，运行在 `http://localhost:18080`，通过 `spider.console.url` 配置自动上报。
 
+控制台是可选的——不配 `spider.console.url` 不影响 Spider 的正常使用，只是没有监控页面。
+
 启动横幅：首次使用 `SpiderClientFactory` 时控制台打印 SPIDER ASCII 字样。
 
 ## 架构
