@@ -1,0 +1,11 @@
+target/
+*.class
+*.jar
+*.log
+.idea/
+*.iml
+.DS_Store
+.github/
+CLAUDE.md
+docs/architecture.md
+.claude/

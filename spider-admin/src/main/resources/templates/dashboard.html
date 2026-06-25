@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spider 服务治理平台</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--text:#1a1a2e;--muted:#6b7280;--border:#e5e7eb;--blue:#2563eb;--green:#059669;--red:#dc2626;--amber:#d97706;--radius:6px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font:13px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh}
+.sidebar{width:200px;background:#1e293b;color:#94a3b8;flex-shrink:0;padding:20px 0;position:fixed;top:0;bottom:0;left:0;overflow-y:auto}
+.sidebar .logo{padding:0 20px 24px;font-size:16px;font-weight:700;color:#fff}
+.sidebar .logo span{color:#38bdf8}
+.sidebar nav a{display:block;padding:9px 20px;color:#94a3b8;text-decoration:none;font-size:13px;margin:2px 8px;border-radius:6px}
+.sidebar nav a:hover,.sidebar nav a.on{color:#fff;background:#334155}
+.main{margin-left:200px;flex:1;min-width:0}
+.topbar{background:var(--card);padding:12px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
+.topbar h2{font-size:15px;font-weight:600}
+.controls{display:flex;align-items:center;gap:10px;font-size:12px}
+.controls label{cursor:pointer;display:flex;align-items:center;gap:4px}
+.controls button{border:1px solid var(--border);background:var(--card);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px}
+.controls button:hover{background:#f9fafb}
+.content{padding:20px 24px}
+/* stat cards */
+.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:20px}
+.cards .c{background:var(--card);border-radius:var(--radius);padding:14px 16px;border:1px solid var(--border)}
+.cards .c .l{font-size:11px;color:var(--muted);margin-bottom:4px}
+.cards .c .n{font-size:22px;font-weight:700}
+.g{color:var(--green)}.r{color:var(--red)}.b{color:var(--blue)}.a{color:var(--amber)}
+/* sparkline */
+.spark{display:flex;align-items:flex-end;gap:1px;height:20px}
+.spark .bar{flex:1;min-width:2px;border-radius:1px 1px 0 0}
+.spark .bar.ok{background:var(--green)}.spark .bar.fail{background:var(--red)}
+/* panel */
+.panel{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:16px;overflow:hidden}
+.panel .hd{padding:10px 14px;font-size:13px;font-weight:600;border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
+.panel .hd .cnt{font-weight:400;color:var(--muted);font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;color:var(--muted);font-weight:500;background:#f9fafb;border-bottom:2px solid var(--border);font-size:11px;white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid #f3f4f6;font-size:12px}
+tr:hover td{background:#f8fafc}
+.n{text-align:right;font-variant-numeric:tabular-nums}
+.cb{display:flex;align-items:center;gap:6px;font-size:11px}
+.cb .t{flex:1;height:3px;background:#f3f4f6;border-radius:2px;overflow:hidden;max-width:60px}
+.cb .fill{height:100%;border-radius:2px}
+.cb .fill.g{background:var(--green)}.cb .fill.r{background:var(--red)}.cb .fill.a{background:var(--amber)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dot.g{background:var(--green)}.dot.r{background:var(--red)}.dot.a{background:var(--amber)}
+.err-log{max-height:200px;overflow-y:auto;font-size:11px}
+.err-log .erow{display:flex;gap:8px;padding:4px 14px;border-bottom:1px solid #f9fafb;font-family:monospace}
+.err-log .erow .ec{color:var(--blue)}.err-log .erow .em{color:var(--red)}.err-log .erow .et{color:var(--muted);margin-left:auto}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+.footer{padding:12px 24px;color:var(--muted);font-size:11px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">Spider <span>Console</span></div>
+  <nav>
+    <a href="#" class="on" data-panel="all">概览</a>
+    <a href="#" data-panel="errors-panel">错误日志</a>
+  </nav>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h2>服务治理概览</h2>
+    <div class="controls">
+      <label><input type="checkbox" id="autoRefresh" checked onchange="toggleRefresh()"> 自动刷新 (5s)</label>
+      <span id="indicator" style="display:none;color:var(--green)">●</span>
+      <span id="lastUpdate" style="color:var(--muted);font-size:11px"></span>
+      <button onclick="load()">立即刷新</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="cards" id="overview"></div>
+    <div class="panel" id="clients-panel">
+      <div class="hd"><span>客户端</span><span class="cnt" id="clientCount">-</span></div>
+      <div id="clientsTable"></div>
+    </div>
+    <div class="panel" id="breakers-panel">
+      <div class="hd"><span>熔断器</span><span class="cnt" id="breakerCount">-</span></div>
+      <div id="breakersTable"></div>
+    </div>
+    <div class="panel" id="errors-panel" style="display:none">
+      <div class="hd"><span>最近错误</span><span class="cnt" id="errorCount">-</span></div>
+      <div class="err-log" id="errorsTable"></div>
+    </div>
+  </div>
+  <div class="footer"><span>Spider 0.1.0</span><span>破茧计划</span></div>
+</div>
+
+<script>
+let timer, data;
+
+async function load() {
+  document.getElementById('indicator').style.display = 'inline';
+  try {
+    const resp = await fetch('/api/dashboard');
+    data = await resp.json();
+    render(data);
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+  } catch(e) { console.warn(e); }
+  document.getElementById('indicator').style.display = 'none';
+}
+
+function render(d) {
+  renderSummary(d.summary||{}, d.clients||{}, d.circuitBreakers||{});
+  renderClients(d.clients||{});
+  renderBreakers(d.circuitBreakers||{});
+  renderErrors(d.recentErrors||[]);
+}
+
+function renderSummary(s, clients, breakers) {
+  let hasOpen = false;
+  for (let v of Object.values(breakers)) { if (v==='OPEN') hasOpen=true; }
+  const statusCls = hasOpen ? 'a' : 'g';
+  const statusTxt = hasOpen ? '注意' : '正常';
+  document.getElementById('overview').innerHTML =
+    `<div class=c><div class=l>运行状态</div><div class="n ${statusCls}">${statusTxt}</div></div>
+     <div class=c><div class=l>运行时长</div><div class="n b">${(s.uptimeSeconds||0).toFixed(0)}s</div></div>
+     <div class=c><div class=l>总调用</div><div class=n>${nf(s.totalCalls)}</div></div>
+     <div class=c><div class=l>总成功</div><div class="n g">${nf(s.totalSuccess)}</div></div>
+     <div class=c><div class=l>总失败</div><div class="n r">${nf(s.totalFailure)}</div></div>
+     <div class=c><div class=l>成功率</div><div class="n ${rc(s.successRate)}">${s.successRate||'N/A'}</div></div>`;
+}
+
+function nf(n) { return (n||0).toLocaleString(); }
+function rc(r) { if(!r||r==='N/A') return ''; const v=parseFloat(r); return v>=99?'g':v>=95?'a':'r'; }
+
+function renderClients(clients) {
+  const entries = Object.entries(clients||{});
+  document.getElementById('clientCount').textContent = `共 ${entries.length} 个服务`;
+  if (!entries.length) { document.getElementById('clientsTable').innerHTML='<div class=empty>暂无数据</div>'; return; }
+
+  let rows = '';
+  for (let [k,v] of entries) {
+    const rate = v.successRate||'100';
+    const rcls = parseFloat(rate)>=99?'g':parseFloat(rate)>=95?'a':'r';
+    // sparkline from outcomes
+    let spark = '';
+    const outcomes = v.outcomes||[];
+    if (outcomes.length) {
+      const last60 = outcomes.slice(-60);
+      for (let o of last60) spark += `<span class="bar ${o.success?'ok':'fail'}" title="${new Date(o.time).toLocaleTimeString()}"></span>`;
+    }
+    rows += `<tr>
+      <td><strong>${esc(k)}</strong><br><span style="font-size:10px;color:var(--muted)">QPS: ${(v.currentQps||0).toFixed(0)}</span></td>
+      <td class=n>${nf(v.calls)}</td>
+      <td class="n g">${nf(v.success)}</td>
+      <td class="n r">${nf(v.failure)}</td>
+      <td class=n>${nf(v.retries)}</td>
+      <td class=n>${nf(v.fallbacks)}</td>
+      <td class=n title="p50/p90/p99">${v.avgLatencyMs||'0'}ms<br><span style="font-size:10px;color:var(--muted)">p50:${v.p50||0} p90:${v.p90||0} p99:${v.p99||0}ms</span></td>
+      <td><div class=cb><div class=t><div class="fill ${rcls}" style="width:${rate}%"></div></div>${rate}%</div></td>
+      <td><div class=spark>${spark}</div></td>
+    </tr>`;
+  }
+  document.getElementById('clientsTable').innerHTML =
+    '<table><thead><tr><th>服务</th><th class=n>调用</th><th class=n>成功</th><th class=n>失败</th><th class=n>重试</th><th class=n>降级</th><th class=n>延迟</th><th>成功率</th><th>趋势</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function renderBreakers(breakers) {
+  const entries = Object.entries(breakers||{});
+  document.getElementById('breakerCount').textContent = `共 ${entries.length} 个`;
+  if (!entries.length) { document.getElementById('breakersTable').innerHTML='<div class=empty>暂无</div>'; return; }
+  let rows = '';
+  for (let [k,v] of entries) {
+    let st,dc,color;
+    if (v==='CLOSED'){st='已关闭';dc='g';color=''}
+    else if(v==='OPEN'){st='已熔断';dc='r';color='color:var(--red)'}
+    else{st='半开';dc='a';color='color:var(--amber)'}
+    rows += `<tr><td><strong>${esc(k)}</strong></td><td style="${color}"><span class="dot ${dc}"></span>${st}</td></tr>`;
+  }
+  document.getElementById('breakersTable').innerHTML = '<table><thead><tr><th>服务</th><th>状态</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function renderErrors(errors) {
+  document.getElementById('errorCount').textContent = `最近 ${errors.length} 条`;
+  if (!errors.length) { document.getElementById('errorsTable').innerHTML='<div class=empty>暂无错误</div>'; return; }
+  let rows = '';
+  for (let e of errors) {
+    rows += `<div class=erow><span class=ec>${esc(e.client)}</span><span>${esc(e.method)}</span><span class=em>${esc(e.message||'')}</span><span class=et>${new Date(e.time).toLocaleTimeString()}</span></div>`;
+  }
+  document.getElementById('errorsTable').innerHTML = rows;
+}
+
+function esc(s) { return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function toggleRefresh() {
+  clearInterval(timer);
+  if (document.getElementById('autoRefresh').checked) timer = setInterval(load, 5000);
+}
+
+// sidebar
+document.querySelectorAll('.sidebar nav a').forEach(a => { a.onclick = function(e) {
+  e.preventDefault();
+  document.querySelectorAll('.sidebar nav a').forEach(x=>x.classList.remove('on'));
+  this.classList.add('on');
+  const p = this.dataset.panel;
+  document.getElementById('clients-panel').style.display = (p==='all'||p==='clients-panel')?'':'none';
+  document.getElementById('breakers-panel').style.display = (p==='all')?'':'none';
+  document.getElementById('errors-panel').style.display = (p==='errors-panel')?'':'none';
+}});
+
+load();
+toggleRefresh();
+</script>
+</body>
+</html>
