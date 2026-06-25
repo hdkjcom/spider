@@ -8,8 +8,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 /**
- * Decorates a SpiderTransport with circuit breaker logic.
- * Before each call, checks the circuit breaker; after each call, records success/failure.
+ * 带有熔断器逻辑的 SpiderTransport 装饰器。
+ * 每次调用前检查熔断器状态；每次调用后记录成功或失败。
  */
 public class CircuitBreakerTransport implements SpiderTransport {
 
@@ -26,7 +26,7 @@ public class CircuitBreakerTransport implements SpiderTransport {
     @Override
     public SpiderResponse execute(SpiderRequest request) throws IOException {
         if (!circuitBreaker.isAllowed()) {
-            log.warn("CircuitBreaker OPEN, rejecting request: {}", request.fullUrl());
+            log.warn("熔断器已打开，拒绝请求: {}", request.fullUrl());
             throw new SpiderClientException("Circuit breaker is OPEN for " + request.fullUrl());
         }
 
@@ -35,7 +35,7 @@ public class CircuitBreakerTransport implements SpiderTransport {
             if (response.isSuccessful()) {
                 circuitBreaker.recordSuccess();
             } else {
-                // 5xx counts as failure for circuit breaker
+                // 5xx 计入熔断器失败统计
                 if (response.statusCode() >= 500) {
                     circuitBreaker.recordFailure(
                             new SpiderClientException(response.statusCode(), "HTTP " + response.statusCode()));

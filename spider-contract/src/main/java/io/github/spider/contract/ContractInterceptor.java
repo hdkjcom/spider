@@ -1,13 +1,12 @@
 package io.github.spider.contract;
 
 import io.github.spider.core.interceptor.SpiderInterceptor;
-import io.github.spider.core.transport.SpiderRequest;
 import io.github.spider.core.transport.SpiderResponse;
 
 /**
- * An interceptor that validates contract constraints on requests and responses.
+ * 在请求和响应上执行契约约束验证的拦截器。
  *
- * <p>Use this as a base class for custom contract validators, or configure validation rules programmatically.
+ * &lt;p&gt;可将其作为自定义契约验证器的基类，或以编程方式配置验证规则。
  */
 public class ContractInterceptor implements SpiderInterceptor {
 
@@ -25,7 +24,7 @@ public class ContractInterceptor implements SpiderInterceptor {
         return response;
     }
 
-    /** Validates a response body against contract expectations. */
+    /** 根据契约期望验证响应体。 */
     @FunctionalInterface
     public interface ResponseValidator {
         void validate(SpiderResponse response);

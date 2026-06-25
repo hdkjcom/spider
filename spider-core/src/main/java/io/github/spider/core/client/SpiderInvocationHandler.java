@@ -20,8 +20,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * JDK Dynamic Proxy InvocationHandler.
- * Drives the full request lifecycle for each method call on a @SpiderClient interface.
+ * JDK 动态代理 InvocationHandler。
+ * 驱动 @SpiderClient 接口上每次方法调用的完整请求生命周期。
  */
 public class SpiderInvocationHandler implements InvocationHandler {
 
@@ -59,7 +59,7 @@ public class SpiderInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        // Handle Object methods
+        // 处理 Object 基础方法
         if (method.getDeclaringClass() == Object.class) {
             return method.invoke(this, args);
         }
@@ -74,7 +74,7 @@ public class SpiderInvocationHandler implements InvocationHandler {
         SpiderResponseContext.clear();
         String methodName = method.getName();
 
-        // Before interceptors
+        // 执行前置拦截器
         for (SpiderInterceptor interceptor : interceptors) {
             request = interceptor.beforeRequest(request);
         }
@@ -86,7 +86,7 @@ public class SpiderInvocationHandler implements InvocationHandler {
             try {
                 SpiderResponse response = transport.execute(request);
 
-                // After interceptors
+                // 执行后置拦截器
                 for (SpiderInterceptor interceptor : interceptors) {
                     response = interceptor.afterResponse(response);
                 }
@@ -96,14 +96,14 @@ public class SpiderInvocationHandler implements InvocationHandler {
                             "HTTP " + response.statusCode() + " for " + request.fullUrl());
                 }
 
-                // Success
+                // 调用成功
                 SpiderResponseContext.set(response);
                 metrics.recordSuccess(clientName, methodName, request, response);
                 SpiderRuntime.getInstance().recordSuccess(clientName);
                 SpiderRuntime.getInstance().recordLatency(clientName, response.elapsedMillis());
-                log.debug("{} {} -> 200 ({}ms)", clientName, request.fullUrl(), response.elapsedMillis());
+                log.debug("{} {} 调用成功 ({}ms)", clientName, request.fullUrl(), response.elapsedMillis());
 
-                // Decode response
+                // 解码响应
                 if (meta.returnType() == void.class || meta.returnType() == Void.class) {
                     return null;
                 }
@@ -121,17 +121,17 @@ public class SpiderInvocationHandler implements InvocationHandler {
                     Thread.sleep(computeBackoff(meta, i + 1));
                 }
             } catch (SpiderClientException e) {
-                // check ignoreStatus
+                // 检查忽略状态码
                 if (meta.shouldIgnoreStatus(e.statusCode())) {
                     lastException = e;
                     break;
                 }
-                // 4xx: do not retry
+                // 4xx 不重试
                 if (e.statusCode() >= 400 && e.statusCode() < 500) {
                     lastException = e;
                     break;
                 }
-                // 5xx: retry if configured
+                // 5xx 根据配置决定是否重试
                 lastException = e;
                 if (i < attempts - 1 && meta.isRetryable() && meta.shouldRetryOn(e)) {
                     metrics.recordRetry(clientName, methodName, i + 1, e);
@@ -141,28 +141,28 @@ public class SpiderInvocationHandler implements InvocationHandler {
             }
         }
 
-        // Record failure
+        // 记录失败
         metrics.recordFailure(clientName, methodName, request, lastException);
         SpiderRuntime.getInstance().recordFailure(clientName);
         SpiderRuntime.getInstance().recordError(clientName, methodName,
                 lastException != null ? lastException.getMessage() : "unknown");
-        log.warn("{} {} -> FAILED after {} attempts: {}", clientName, request.fullUrl(), attempts,
+        log.warn("{} {} 调用失败，重试{}次后放弃: {}", clientName, request.fullUrl(), attempts,
                 lastException != null ? lastException.getMessage() : "unknown");
 
-        // Notify interceptors of error
+        // 通知拦截器异常
         for (SpiderInterceptor interceptor : interceptors) {
             if (interceptor.onError(request, lastException)) {
                 return null;
             }
         }
 
-        // Try fallback
+        // 尝试降级
         Object fallbackOrFactory = fallbackMap.get(method);
         if (fallbackOrFactory != null) {
             try {
                 metrics.recordFallback(clientName, methodName);
                 SpiderRuntime.getInstance().recordFallback(clientName);
-                log.info("{} {} -> FALLBACK triggered", clientName, request.fullUrl());
+                log.info("{} {} 触发降级", clientName, request.fullUrl());
                 Object fallbackInstance = resolveFallback(fallbackOrFactory, lastException);
                 return method.invoke(fallbackInstance, args);
             } catch (Exception fbEx) {

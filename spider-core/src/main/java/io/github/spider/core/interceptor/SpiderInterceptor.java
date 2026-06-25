@@ -4,10 +4,10 @@ import io.github.spider.core.transport.SpiderRequest;
 import io.github.spider.core.transport.SpiderResponse;
 
 /**
- * Interceptor for the Spider request/response pipeline.
+ * Spider 请求/响应管道的拦截器接口。
  *
- * <p>Interceptors are called in registration order. Use them for
- * cross-cutting concerns: authentication headers, logging, tracing, metrics.
+ * <p>拦截器按注册顺序调用。用于横切关注点：
+ * 认证请求头、日志、链路追踪、指标采集等。
  *
  * <pre>{@code
  * SpiderClientFactory.builder()
@@ -23,20 +23,20 @@ import io.github.spider.core.transport.SpiderResponse;
 public interface SpiderInterceptor {
 
     /**
-     * Called before the transport executes.
-     * Return a (possibly modified) request. Throw to abort the call.
+     * 在传输执行之前调用。
+     * 返回（可能修改后的）请求。抛出异常可中止调用。
      */
     default SpiderRequest beforeRequest(SpiderRequest request) { return request; }
 
     /**
-     * Called after the transport returns a successful response.
-     * Return a (possibly modified) response.
+     * 在传输返回成功响应之后调用。
+     * 返回（可能修改后的）响应。
      */
     default SpiderResponse afterResponse(SpiderResponse response) { return response; }
 
     /**
-     * Called when the request fails after all retries are exhausted.
-     * Return {@code true} to suppress the exception (caller receives null).
+     * 当请求在所有重试耗尽后仍失败时调用。
+     * 返回 {@code true} 可抑制异常（调用方收到 null）。
      */
     default boolean onError(SpiderRequest request, Exception ex) { return false; }
 }

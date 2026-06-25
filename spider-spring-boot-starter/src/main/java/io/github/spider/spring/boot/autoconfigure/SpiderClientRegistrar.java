@@ -24,8 +24,11 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Scans the classpath for @SpiderClient interfaces and registers them as bean definitions
- * backed by SpiderClientFactoryBean.
+ * 扫描 classpath 中标注了 @SpiderClient 的接口，并将其注册为 BeanDefinition，
+ * 由 SpiderClientFactoryBean 负责代理对象的创建。
+ *
+ * <p>该类实现了 ImportBeanDefinitionRegistrar，在 Spring 容器启动时通过
+ * {@link EnableSpiderClients} 注解触发扫描与注册流程。</p>
  */
 public class SpiderClientRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {
 
@@ -42,6 +45,10 @@ public class SpiderClientRegistrar implements ImportBeanDefinitionRegistrar, Res
         this.environment = environment;
     }
 
+    /**
+     * 扫描 basePackages 下所有标注了 @SpiderClient 的接口，并为每个接口
+     * 注册一个由 SpiderClientFactoryBean 支持的 BeanDefinition。
+     */
     @Override
     public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
         Set<String> basePackages = getBasePackages(importingClassMetadata);
@@ -73,9 +80,9 @@ public class SpiderClientRegistrar implements ImportBeanDefinitionRegistrar, Res
         BeanDefinitionBuilder builder = BeanDefinitionBuilder
                 .genericBeanDefinition(SpiderClientFactoryBean.class);
 
-        // Pass the client interface class as a constructor argument
+        // 将客户端接口 Class 作为构造参数传入
         builder.addConstructorArgValue(clientInterface);
-        // Reference to the shared SpiderClientFactory bean
+        // 引用共享的 SpiderClientFactory Bean
         builder.addConstructorArgReference("spiderClientFactory");
 
         builder.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);

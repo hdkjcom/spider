@@ -11,16 +11,21 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
- * Periodically reports Spider metrics to the Spider Console.
+ * 定期向 Spider Console 上报 Spider 运行指标。
  *
- * <p>Configure via system properties or application.properties:
+ * <p>通过系统属性或 application.properties 配置：
  * <pre>
  * spider.console.url=http://localhost:18080
  * spider.console.interval=10
  * </pre>
  */
 public class SpiderReporter {
+
+    private static final Logger log = LoggerFactory.getLogger(SpiderReporter.class);
 
     private static final ScheduledExecutorService executor =
             Executors.newSingleThreadScheduledExecutor(r -> {
@@ -39,7 +44,9 @@ public class SpiderReporter {
         executor.scheduleAtFixedRate(() -> {
             try {
                 report(consoleUrl, serviceName);
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.warn("上报失败", e);
+            }
         }, 5, interval, TimeUnit.SECONDS);
     }
 
@@ -68,7 +75,7 @@ public class SpiderReporter {
         }
         payload.put("metrics", metrics);
 
-        // Add circuit breaker states
+        // 添加熔断器状态
         Map<String, Object> breakers = new LinkedHashMap<>();
         for (Map.Entry<String, io.github.spider.core.policy.SpiderCircuitBreaker.State> e :
                 rt.circuitBreakerStates().entrySet()) {
@@ -76,7 +83,7 @@ public class SpiderReporter {
         }
         payload.put("circuitBreakers", breakers);
 
-        // tracing info
+        // 链路追踪信息
         Map<String, Object> tracing = new LinkedHashMap<>();
         tracing.put("enabled", isTracingAvailable());
         payload.put("tracing", tracing);

@@ -9,9 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Simple in-memory circuit breaker implementation.
- * Used as the default when @SpiderCircuitBreaker is present but no custom implementation is provided.
- * Thread-safe.
+ * 简单的内存熔断器实现。
+ * 当存在 @SpiderCircuitBreaker 注解但未提供自定义实现时，作为默认实现使用。
+ * 线程安全。
  */
 public class CountingCircuitBreaker implements SpiderCircuitBreaker {
 
@@ -35,7 +35,7 @@ public class CountingCircuitBreaker implements SpiderCircuitBreaker {
              annotation.permittedNumberOfCallsInHalfOpenState());
     }
 
-    /** Convenience constructor for programmatic use (without annotation). */
+    /** 便捷构造器，用于编程方式使用（无需注解）。 */
     public CountingCircuitBreaker(int failureRateThreshold, int slidingWindowSize,
                                    long waitDurationInOpenStateMillis, int permittedNumberOfCallsInHalfOpenState) {
         this.failureRateThreshold = failureRateThreshold;
@@ -55,9 +55,9 @@ public class CountingCircuitBreaker implements SpiderCircuitBreaker {
         if (state == State.OPEN) {
             long now = System.currentTimeMillis();
             if (now - openedAt.get() >= waitDurationInOpenStateMillis) {
-                // Transition to HALF_OPEN
+                // 转换为半开状态
                 currentState.compareAndSet(State.OPEN, State.HALF_OPEN);
-                halfOpenCalls.set(1);  // Count this transition call
+                halfOpenCalls.set(1);  // 计入本次转换调用
                 successCount.set(0);
                 failureCount.set(0);
                 return true;
@@ -65,7 +65,7 @@ public class CountingCircuitBreaker implements SpiderCircuitBreaker {
             return false;
         }
 
-        // HALF_OPEN: allow limited calls
+        // 半开状态：允许有限调用
         if (state == State.HALF_OPEN) {
             return halfOpenCalls.incrementAndGet() <= permittedNumberOfCallsInHalfOpenState;
         }
@@ -91,20 +91,20 @@ public class CountingCircuitBreaker implements SpiderCircuitBreaker {
         int failures = failureCount.incrementAndGet();
         int total = failures + successCount.get();
 
-        // Check failure rate
+        // 检查失败率
         if (total >= slidingWindowSize) {
             double failureRate = (double) failures / total * 100;
             if (failureRate >= failureRateThreshold) {
                 if (currentState.compareAndSet(State.CLOSED, State.OPEN)
                         || currentState.compareAndSet(State.HALF_OPEN, State.OPEN)) {
                     openedAt.set(System.currentTimeMillis());
-                    log.warn("CircuitBreaker OPEN (failureRate={}%, threshold={}%)", String.format("%.1f", failureRate), failureRateThreshold);
+                    log.warn("熔断器打开 (失败率{}%, 阈值{}%)", String.format("%.1f", failureRate), failureRateThreshold);
                 }
             }
             resetWindow();
         }
 
-        // In HALF_OPEN, a single failure re-opens the circuit
+        // 半开状态单次失败重新打开熔断器
         if (currentState.get() == State.HALF_OPEN) {
             currentState.set(State.OPEN);
             openedAt.set(System.currentTimeMillis());

@@ -26,7 +26,7 @@ public class RequestTemplate {
             request.timeoutMillis(meta.timeoutMillis());
         }
 
-        // Resolve path template, query params, headers, body
+        // 解析路径模板、查询参数、请求头、请求体
         String path = meta.pathTemplate();
 
         for (ParamBinding binding : meta.paramBindings()) {

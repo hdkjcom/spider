@@ -12,13 +12,19 @@ import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import java.time.Duration;
 
 /**
- * Resilience4j-based rate limiting interceptor.
- * Fails fast when the rate limit is exceeded.
+ * 基于 Resilience4j 的限流拦截器。
+ * 当超过速率限制时快速失败，抛出异常。
  */
 public class RateLimiterInterceptor implements SpiderInterceptor {
 
     private final RateLimiter rateLimiter;
 
+    /**
+     * 根据给定的名称和 {@link RateLimit} 注解配置创建限流拦截器。
+     *
+     * @param name       限流器名称，用于在注册中心中标识
+     * @param annotation 限流注解，包含许可数、时间窗口、超时等配置
+     */
     public RateLimiterInterceptor(String name, RateLimit annotation) {
         RateLimiterConfig config = RateLimiterConfig.custom()
                 .limitForPeriod(annotation.permits())
@@ -28,10 +34,23 @@ public class RateLimiterInterceptor implements SpiderInterceptor {
         this.rateLimiter = RateLimiterRegistry.of(config).rateLimiter(name);
     }
 
+    /**
+     * 使用已有的 Resilience4j {@link RateLimiter} 实例创建限流拦截器。
+     *
+     * @param rateLimiter 已有的 Resilience4j RateLimiter 实例
+     */
     public RateLimiterInterceptor(RateLimiter rateLimiter) {
         this.rateLimiter = rateLimiter;
     }
 
+    /**
+     * 在请求发送前执行限流检查。
+     * 如果超过速率限制，则抛出 {@link SpiderClientException} 快速失败。
+     *
+     * @param request 即将发送的请求
+     * @return 未经修改的原始请求（限流通过时）
+     * @throws SpiderClientException 当速率限制被触发时
+     */
     @Override
     public SpiderRequest beforeRequest(SpiderRequest request) {
         if (!rateLimiter.acquirePermission()) {
@@ -40,10 +59,23 @@ public class RateLimiterInterceptor implements SpiderInterceptor {
         return request;
     }
 
+    /**
+     * 在收到响应后执行处理，当前实现直接透传响应。
+     *
+     * @param response 从远程服务返回的响应
+     * @return 未经修改的原始响应
+     */
     @Override
     public SpiderResponse afterResponse(SpiderResponse response) {
         return response;
     }
 
-    public RateLimiter delegate() { return rateLimiter; }
+    /**
+     * 暴露底层 Resilience4j {@link RateLimiter} 实例，供高级用户直接使用。
+     *
+     * @return 底层 Resilience4j RateLimiter 实例
+     */
+    public RateLimiter delegate() {
+        return rateLimiter;
+    }
 }

@@ -1,31 +1,31 @@
 package io.github.spider.core.policy;
 
 /**
- * Circuit breaker abstraction.
+ * 熔断器抽象。
  *
- * <p>Spider provides two implementations:
+ * <p>Spider 提供两种实现：
  * <ul>
- * <li>{@code CountingCircuitBreaker} — built-in, no extra dependency</li>
- * <li>{@code ResilienceCircuitBreaker} — wraps Resilience4j, in spider-resilience module</li>
+ * <li>{@code CountingCircuitBreaker} — 内置实现，无额外依赖</li>
+ * <li>{@code ResilienceCircuitBreaker} — 封装 Resilience4j，位于 spider-resilience 模块</li>
  * </ul>
  */
 public interface SpiderCircuitBreaker {
 
-    /** Whether the circuit is currently allowing calls. */
+    /** 当前是否允许通过调用。 */
     boolean isAllowed();
 
-    /** Record a successful call (decrements failure counter). */
+    /** 记录一次成功调用（递减失败计数器）。 */
     void recordSuccess();
 
-    /** Record a failed call (may open the circuit). */
+    /** 记录一次失败调用（可能打开熔断器）。 */
     void recordFailure(Throwable throwable);
 
-    /** Current state. */
+    /** 当前状态。 */
     State state();
 
     enum State { CLOSED, OPEN, HALF_OPEN }
 
-    /** Circuit breaker that never opens. */
+    /** 永不打开的熔断器。 */
     SpiderCircuitBreaker NOOP = new SpiderCircuitBreaker() {
         @Override public boolean isAllowed() { return true; }
         @Override public void recordSuccess() {}

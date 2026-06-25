@@ -7,14 +7,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Simple in-memory service discovery implementation.
- * Maps service names to fixed URLs. Useful for testing and simple deployments.
+ * 基于内存的简单服务发现实现。
+ * 将服务名称映射到固定的 URL 列表，适用于测试和简单部署场景。
  */
 public class SimpleServiceDiscovery implements SpiderServiceDiscovery {
 
     private final Map<String, List<String>> registry = new ConcurrentHashMap<>();
 
-    /** Register a service with its URLs. */
+    /** 注册一个服务及其 URL 列表。 */
     public SimpleServiceDiscovery register(String serviceName, String... urls) {
         List<String> list = new ArrayList<>();
         Collections.addAll(list, urls);
@@ -22,7 +22,7 @@ public class SimpleServiceDiscovery implements SpiderServiceDiscovery {
         return this;
     }
 
-    /** Remove a service registration. */
+    /** 移除一个服务注册。 */
     public SimpleServiceDiscovery deregister(String serviceName) {
         registry.remove(serviceName);
         return this;

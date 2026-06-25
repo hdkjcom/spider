@@ -9,10 +9,19 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+/**
+ * Spider 健康指示器，通过 {@code /actuator/health} 暴露 Spider 熔断器状态。
+ * 当任一熔断器处于 OPEN 状态时，整体健康状态为 DOWN。
+ */
 @Component
 @ConditionalOnClass(name = "org.springframework.boot.actuate.health.HealthIndicator")
 public class SpiderHealthIndicator implements HealthIndicator {
 
+    /**
+     * 检查所有已注册熔断器的状态。
+     *
+     * @return 健康状态，包含各熔断器当前状态详情
+     */
     @Override
     public Health health() {
         Map<String, SpiderCircuitBreaker.State> states = SpiderRuntime.getInstance().circuitBreakerStates();

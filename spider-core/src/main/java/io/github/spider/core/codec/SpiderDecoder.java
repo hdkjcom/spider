@@ -3,17 +3,17 @@ package io.github.spider.core.codec;
 import java.lang.reflect.Type;
 
 /**
- * SPI for decoding response bodies (e.g. JSON bytes → Java object).
+ * 响应体解码 SPI（例如 JSON 字节数组 → Java 对象）。
  */
 public interface SpiderDecoder {
 
     /**
-     * Decode bytes to an object of the given type.
+     * 将字节数组解码为指定类型的对象。
      *
-     * @param bodyBytes the raw response body
-     * @param returnType the target Java type (supports generics via ParameterizedType)
-     * @return the decoded object
-     * @throws Exception on decoding failure
+     * @param bodyBytes 原始响应体字节数组
+     * @param returnType 目标 Java 类型（通过 ParameterizedType 支持泛型）
+     * @return 解码后的对象
+     * @throws Exception 解码失败时抛出
      */
     Object decode(byte[] bodyBytes, Type returnType) throws Exception;
 }

@@ -16,8 +16,8 @@ public class MethodMetadata {
     private String httpMethod;
     private String pathTemplate;
     private List<ParamBinding> paramBindings = new ArrayList<>();
-    private int timeoutMillis = -1;   // -1 means use client/transport default
-    private int maxAttempts = 1;      // default: 1 (no retry)
+    private int timeoutMillis = -1;   // -1 表示使用客户端/传输层默认值
+    private int maxAttempts = 1;      // 默认 1，即不重试
     private long backoffMillis = 100;
     private String backoffStrategy = "FIXED";
     private long maxBackoffMillis = 5000;
@@ -59,26 +59,26 @@ public class MethodMetadata {
     public Set<Integer> ignoreStatus() { return ignoreStatus; }
     public Type returnType() { return returnType; }
 
-    /** Returns true if retry is allowed based on HTTP method. GET is idempotent, POST is not by default. */
+    /** 是否允许重试。GET 是幂等的，POST 默认不重试。 */
     public boolean isRetryable() {
         return maxAttempts > 1;
     }
 
-    /** Whether this is a POST request (non-idempotent by default). */
+    /** 是否为 POST 请求（默认非幂等）。 */
     public boolean isPost() {
         return "POST".equalsIgnoreCase(httpMethod);
     }
 
-    /** Check if retry should be triggered for this exception. */
+    /** 检查此异常是否应触发重试。 */
     public boolean shouldRetryOn(Throwable ex) {
-        if (retryOn.isEmpty()) return true; // all exceptions trigger retry
+        if (retryOn.isEmpty()) return true; // 所有异常触发重试
         for (Class<? extends Throwable> cls : retryOn) {
             if (cls.isAssignableFrom(ex.getClass())) return true;
         }
         return false;
     }
 
-    /** Check if this status code should be ignored (not retried). */
+    /** 检查此状态码是否应被忽略（不重试）。 */
     public boolean shouldIgnoreStatus(int status) {
         return ignoreStatus.contains(status);
     }

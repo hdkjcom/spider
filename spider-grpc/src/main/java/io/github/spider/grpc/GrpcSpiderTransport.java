@@ -23,9 +23,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Generic gRPC transport for Spider.
+ * Spider 通用 gRPC 传输层。
  *
- * Converts SpiderRequest (JSON) → gRPC DynamicMessage → unary call → DynamicMessage → JSON response.
+ * 将 SpiderRequest (JSON) 转换为 gRPC DynamicMessage，执行一元调用，再将 DynamicMessage 转换回 JSON 响应。
  */
 public class GrpcSpiderTransport implements SpiderTransport {
 
@@ -37,14 +37,14 @@ public class GrpcSpiderTransport implements SpiderTransport {
     }
 
     /**
-     * Register a gRPC method binding.
+     * 注册一个 gRPC 方法绑定。
      *
-     * @param spiderPath   the Spider path (e.g., "/greet")
-     * @param serviceName  gRPC service name (e.g., "greet.Greeter")
-     * @param methodName   gRPC method name (e.g., "SayHello")
-     * @param methodDesc   the gRPC MethodDescriptor
-     * @param requestDesc  the protobuf descriptor for the request message
-     * @param responseDesc the protobuf descriptor for the response message
+     * @param spiderPath   Spider 路径（例如 "/greet"）
+     * @param serviceName  gRPC 服务名（例如 "greet.Greeter"）
+     * @param methodName   gRPC 方法名（例如 "SayHello"）
+     * @param methodDesc   gRPC MethodDescriptor 描述符
+     * @param requestDesc  请求消息的 Protobuf 描述符
+     * @param responseDesc 响应消息的 Protobuf 描述符
      */
     public void registerMethod(String spiderPath, String serviceName, String methodName,
                                 MethodDescriptor<DynamicMessage, DynamicMessage> methodDesc,
@@ -63,10 +63,10 @@ public class GrpcSpiderTransport implements SpiderTransport {
 
         long start = System.currentTimeMillis();
 
-        // Build request DynamicMessage from JSON body
+        // 从 JSON 请求体构建 DynamicMessage
         DynamicMessage requestMessage = buildRequest(binding, request.body());
 
-        // Execute unary gRPC call
+        // 执行一元 gRPC 调用
         ClientCall<DynamicMessage, DynamicMessage> call =
                 channel.newCall(binding.methodDescriptor, CallOptions.DEFAULT);
         DynamicMessage responseMessage;
@@ -78,7 +78,7 @@ public class GrpcSpiderTransport implements SpiderTransport {
 
         long elapsed = System.currentTimeMillis() - start;
 
-        // Convert response to JSON
+        // 将响应转换为 JSON
         byte[] responseBody = new byte[0];
         if (responseMessage != null) {
             try {
@@ -122,16 +122,16 @@ public class GrpcSpiderTransport implements SpiderTransport {
         return bestMatch != null ? bindings.get(bestMatch) : null;
     }
 
-    /** Shutdown the underlying channel. */
+    /** 关闭底层 Channel。 */
     public void shutdown() throws InterruptedException {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 
-    // ---- Streaming support ----
+    // ---- 流式调用支持 ----
 
     /**
-     * Execute a server-streaming gRPC call and return an iterator of responses.
-     * Each response is a JSON-encoded DynamicMessage.
+     * 执行服务端流式 gRPC 调用，返回响应的迭代器。
+     * 每个响应是 JSON 编码的 DynamicMessage。
      */
     public Iterator<String> executeStreaming(SpiderRequest request) throws IOException {
         GrpcMethodBinding binding = findBinding(request.path());
@@ -151,7 +151,7 @@ public class GrpcSpiderTransport implements SpiderTransport {
                     @Override
                     public void onNext(DynamicMessage value) {
                         try {
-                            String json = com.google.protobuf.util.JsonFormat.printer().print(value);
+                            String json = JsonFormat.printer().print(value);
                             responseQueue.add(json);
                         } catch (Exception e) {
                             onError(e);
@@ -177,7 +177,7 @@ public class GrpcSpiderTransport implements SpiderTransport {
                 if (next != null) return true;
                 try {
                     next = responseQueue.poll(30, TimeUnit.SECONDS);
-                    if (next == null) return false; // timeout
+                    if (next == null) return false; // 超时
                     if ("__DONE__".equals(next)) { done = true; next = null; return false; }
                     if (next.startsWith("__ERROR__:")) {
                         throw new RuntimeException(next.substring(10));
@@ -199,7 +199,7 @@ public class GrpcSpiderTransport implements SpiderTransport {
         };
     }
 
-    // ---- Inner types ----
+    // ---- 内部类型 ----
 
     private static class GrpcMethodBinding {
         final String fullMethodName;
