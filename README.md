@@ -23,6 +23,8 @@ Spider = **Declarative Remote Call** + **Elastic Governance** + **Contract Prote
 - Service discovery — SPI with in-memory and Nacos implementations
 - Contract validation — response validation interceptor
 - Spring Boot starter — `@EnableSpiderClients`, auto-scan, `application.yml` config
+- Standalone Console — monitoring dashboard for all Spider services (Nacos-style)
+- Auto-reporting — services report metrics to Console via `spider.console.url` config
 - No Spring required — core modules run with plain Java 8
 
 ## Quick Start
@@ -124,9 +126,24 @@ Tags: `client` (service name), `method` (method name).
 
 Tracing: `TracingInterceptor` auto-injects W3C trace-context headers (requires `spider-telemetry` on classpath).
 
-Dashboard: `SpiderAdminApp` serves a monitoring UI at `http://localhost:18000` with QPS, latency percentiles, error log, and trend sparklines.
-
 Startup banner: `SpiderClientFactory` prints an ASCII SPIDER banner on first use.
+
+### Monitoring Console
+
+Run the standalone console:
+
+```bash
+mvn exec:java -pl spider-console -Dexec.mainClass=io.github.spider.console.SpiderConsoleApplication
+```
+
+Open `http://localhost:18080`. Services auto-report via config:
+
+```properties
+spider.console.url=http://localhost:18080
+spider.console.service-name=my-service
+```
+
+Console shows: service overview, client metrics (QPS, p50/p90/p99), circuit breaker states, rate limiter status, retry counts, tracing status.
 
 ## Architecture
 
@@ -155,6 +172,7 @@ Startup banner: `SpiderClientFactory` prints an ASCII SPIDER banner on first use
 | `spider-telemetry` | OpenTelemetry tracing |
 | `spider-config` | Dynamic configuration SPI |
 | `spider-messaging` | Message queue transport SPI |
+| `spider-console` | Standalone monitoring console |
 | `spider-spring-boot-starter` | All-in-one Spring Boot starter |
 | `spider-demo` | Self-contained demo |
 

@@ -9,3 +9,4 @@ target/
 CLAUDE.md
 docs/architecture.md
 .claude/
+data/
