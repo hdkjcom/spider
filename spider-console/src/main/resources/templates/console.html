@@ -125,7 +125,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 <script>
 let D={},timer;
 
-async function load(){try{const r=await fetch('/api/dashboard');D=await r.json();render()}catch(e){}}
+async function load(){try{const r=await fetch('/spider/api/dashboard');D=await r.json();render()}catch(e){}}
 
 function render(){
   document.getElementById('sc').textContent=D.snapshotCount||0;

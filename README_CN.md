@@ -126,7 +126,7 @@ public interface PayClient {
 
 链路追踪：`TracingInterceptor` 自动注入 W3C trace-context（需 `spider-telemetry` 在 classpath 上）。
 
-控制台：独立部署的 `spider-console`，运行在 `http://localhost:18080`，通过 `spider.console.url` 配置自动上报。
+控制台：引入 starter 后，直接在业务端口访问 `http://localhost:8086/spider` 即可查看 Dashboard。
 
 控制台是可选的——不配 `spider.console.url` 不影响 Spider 的正常使用，只是没有监控页面。
 
