@@ -5,9 +5,14 @@ import io.github.spider.core.codec.SpiderDecoder;
 import io.github.spider.core.codec.SpiderEncoder;
 import io.github.spider.core.discovery.SpiderServiceDiscovery;
 import io.github.spider.core.interceptor.SpiderInterceptor;
+import io.github.spider.core.metadata.DefaultMethodMetadataParser;
+import io.github.spider.core.metadata.MethodMetadata;
+import io.github.spider.core.metadata.RequestTemplate;
 import io.github.spider.core.metrics.SpiderMetrics;
 import io.github.spider.core.policy.FallbackFactory;
 import io.github.spider.core.policy.SpiderCircuitBreaker;
+import io.github.spider.core.runtime.SpiderRuntime;
+import io.github.spider.core.transport.CircuitBreakerTransport;
 import io.github.spider.core.transport.SpiderTransport;
 
 import java.lang.reflect.Method;
@@ -90,35 +95,35 @@ public class SpiderClientFactory {
 
         SpiderTransport transport = this.transport;
         if (circuitBreaker != null) {
-            transport = new io.github.spider.core.transport.CircuitBreakerTransport(transport, circuitBreaker);
+            transport = new CircuitBreakerTransport(transport, circuitBreaker);
         } else {
             io.github.spider.core.annotation.SpiderCircuitBreaker cbAnn =
                     clientInterface.getAnnotation(io.github.spider.core.annotation.SpiderCircuitBreaker.class);
             if (cbAnn != null) {
                 CountingCircuitBreaker cb = new CountingCircuitBreaker(cbAnn);
-                transport = new io.github.spider.core.transport.CircuitBreakerTransport(transport, cb);
-                io.github.spider.core.runtime.SpiderRuntime.getInstance().registerCircuitBreaker(ann.name(), cb);
+                transport = new CircuitBreakerTransport(transport, cb);
+                SpiderRuntime.getInstance().registerCircuitBreaker(ann.name(), cb);
             }
         }
 
         if (circuitBreaker != null) {
-            io.github.spider.core.runtime.SpiderRuntime.getInstance().registerCircuitBreaker(ann.name(), circuitBreaker);
+            SpiderRuntime.getInstance().registerCircuitBreaker(ann.name(), circuitBreaker);
         }
 
         String name = ann.name();
         String baseUrl = urlOverride != null ? urlOverride : ann.url();
-        Map<Method, io.github.spider.core.metadata.MethodMetadata> meta = new HashMap<>();
+        Map<Method, MethodMetadata> meta = new HashMap<>();
         Map<Method, Object> fallbacks = new HashMap<>();
 
-        io.github.spider.core.metadata.DefaultMethodMetadataParser parser = new io.github.spider.core.metadata.DefaultMethodMetadataParser();
+        DefaultMethodMetadataParser parser = new DefaultMethodMetadataParser();
         for (Method m : clientInterface.getMethods()) {
-            io.github.spider.core.metadata.MethodMetadata mm = parser.parse(m);
+            MethodMetadata mm = parser.parse(m);
             if (mm != null) meta.put(m, mm);
         }
 
         buildFallbacks(ann, clientInterface, fallbacks);
 
-        io.github.spider.core.metadata.RequestTemplate template = new io.github.spider.core.metadata.RequestTemplate(encoder);
+        RequestTemplate template = new RequestTemplate(encoder);
         SpiderInvocationHandler handler = new SpiderInvocationHandler(name, baseUrl, meta, template, transport, decoder, interceptors, fallbacks, metrics);
 
         return (T) Proxy.newProxyInstance(clientInterface.getClassLoader(), new Class[]{clientInterface}, handler);

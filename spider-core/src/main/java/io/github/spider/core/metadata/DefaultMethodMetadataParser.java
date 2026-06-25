@@ -7,14 +7,14 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
 /**
- * Default implementation of MethodMetadataParser.
- * Reads Spider annotations from interface methods and builds MethodMetadata.
+ * MethodMetadataParser 的默认实现。
+ * 从接口方法中读取 Spider 注解并构建 MethodMetadata。
  */
 public class DefaultMethodMetadataParser implements MethodMetadataParser {
 
     @Override
     public MethodMetadata parse(Method method) {
-        // Check for @SpiderGet or @SpiderPost
+        // 检查 HTTP 方法注解
         SpiderGet getAnn = method.getAnnotation(SpiderGet.class);
         SpiderPost postAnn = method.getAnnotation(SpiderPost.class);
         SpiderPut putAnn = method.getAnnotation(SpiderPut.class);
@@ -36,13 +36,13 @@ public class DefaultMethodMetadataParser implements MethodMetadataParser {
             meta.httpMethod("DELETE").pathTemplate(deleteAnn.value());
         }
 
-        // @Timeout
+        // 超时配置
         Timeout timeoutAnn = method.getAnnotation(Timeout.class);
         if (timeoutAnn != null) {
             meta.timeoutMillis(timeoutAnn.value());
         }
 
-        // @Retry
+        // 重试配置
         Retry retryAnn = method.getAnnotation(Retry.class);
         if (retryAnn != null) {
             meta.maxAttempts(retryAnn.maxAttempts())
@@ -57,10 +57,10 @@ public class DefaultMethodMetadataParser implements MethodMetadataParser {
             }
         }
 
-        // Return type
+        // 返回类型
         meta.returnType(method.getGenericReturnType());
 
-        // Parse parameter annotations
+        // 解析参数注解
         java.lang.reflect.Parameter[] parameters = method.getParameters();
         for (int i = 0; i < parameters.length; i++) {
             Annotation[] paramAnns = parameters[i].getAnnotations();

@@ -3,8 +3,8 @@ package io.github.spider.core.client;
 import io.github.spider.core.transport.SpiderResponse;
 
 /**
- * Provides access to response metadata (headers, status code) after a Spider call.
- * Uses a ThreadLocal, so it is safe for per-request use in thread-per-request models.
+ * 提供响应元数据访问（响应头、状态码），在 Spider 调用后通过 ThreadLocal 获取。
+ * 适用于 thread-per-request 模型，每个请求线程独立。
  *
  * <pre>{@code
  * UserDTO user = client.getUser(1L);
@@ -12,20 +12,19 @@ import io.github.spider.core.transport.SpiderResponse;
  * String requestId = resp.headers().get("X-Request-Id").get(0);
  * }</pre>
  *
- * <p>In reactive or async code the caller must capture the response immediately
- * after the call, before switching threads.
+ * <p>在响应式或异步代码中，调用者必须在调用后、切换线程前立即捕获响应。
  */
 public final class SpiderResponseContext {
 
     private static final ThreadLocal<SpiderResponse> CURRENT = new ThreadLocal<>();
 
-    /** Called by the framework after each transport execution. */
+    /** 由框架在每次传输执行后调用。 */
     public static void set(SpiderResponse response) { CURRENT.set(response); }
 
-    /** Returns the last response from a Spider call on this thread, or null. */
+    /** 返回当前线程上最近一次 Spider 调用的响应，可能为 null。 */
     public static SpiderResponse lastResponse() { return CURRENT.get(); }
 
-    /** Called by the framework to clear after each invocation. */
+    /** 由框架在每次调用后调用，清理 ThreadLocal。 */
     public static void clear() { CURRENT.remove(); }
 
     private SpiderResponseContext() {}

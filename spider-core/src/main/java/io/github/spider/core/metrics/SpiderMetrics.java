@@ -4,10 +4,10 @@ import io.github.spider.core.transport.SpiderRequest;
 import io.github.spider.core.transport.SpiderResponse;
 
 /**
- * SPI for recording invocation metrics.
- * Implementations (Micrometer, etc.) plug in here without spider-core depending on a specific metrics library.
+ * 指标记录 SPI。
+ * 实现类（Micrometer 等）通过此接口接入，spider-core 无需依赖具体的指标库。
  *
- * <p>Use via {@code SpiderClientFactory.builder().metrics(new MicrometerSpiderMetrics(registry))}.
+ * <p>使用方式：{@code SpiderClientFactory.builder().metrics(new MicrometerSpiderMetrics(registry))}。
  */
 public interface SpiderMetrics {
     default void recordSuccess(String clientName, String methodName, SpiderRequest request, SpiderResponse response) {}

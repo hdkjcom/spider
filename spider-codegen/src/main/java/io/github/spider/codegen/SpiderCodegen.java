@@ -13,11 +13,11 @@ import java.nio.file.Paths;
 import java.util.*;
 
 /**
- * Parses an OpenAPI 3.0 JSON spec and generates @SpiderClient interfaces + DTOs.
+ * 解析 OpenAPI 3.0 JSON 规范并生成 @SpiderClient 接口及 DTO 类。
  *
  * <pre>{@code
  * SpiderCodegen codegen = new SpiderCodegen();
- * codegen.generate(new File("openapi.json"), new File("src/main/java"));
+ * codegen.generate(new File("openapi.json"));
  * }</pre>
  */
 public class SpiderCodegen {
@@ -30,7 +30,9 @@ public class SpiderCodegen {
     public SpiderCodegen outputDir(String outputDir) { this.outputDir = outputDir; return this; }
 
     /**
-     * Generate Java sources from an OpenAPI 3.0 JSON file.
+     * 从 OpenAPI 3.0 JSON 文件生成 Java 源代码。
+     *
+     * @param openApiFile OpenAPI 3.0 规范的 JSON 文件
      */
     public void generate(File openApiFile) throws IOException {
         JsonNode root = mapper.readTree(openApiFile);

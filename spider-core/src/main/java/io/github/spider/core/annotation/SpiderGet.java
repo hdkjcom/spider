@@ -3,8 +3,8 @@ package io.github.spider.core.annotation;
 import java.lang.annotation.*;
 
 /**
- * HTTP GET request.
- * The path may contain placeholders ({@code {name}}) resolved by {@link Path} parameters.
+ * HTTP GET 请求。
+ * 路径可包含占位符（{@code {name}}），由 {@link Path} 参数解析。
  *
  * <pre>{@code
  * @SpiderGet("/users/{id}")
@@ -15,8 +15,8 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface SpiderGet {
-    /** Request path with optional {@code {variable}} placeholders. */
+    /** 请求路径，可包含 {@code {variable}} 占位符。 */
     String value();
-    /** Reserved for static headers (future). */
+    /** 预留用于静态请求头（未来功能）。 */
     String[] headers() default {};
 }

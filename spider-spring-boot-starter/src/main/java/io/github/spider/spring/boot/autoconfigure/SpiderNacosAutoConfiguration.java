@@ -10,12 +10,23 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Spider Nacos 服务发现自动配置类，在 classpath 中包含 NacosSpiderDiscovery
+ * 且配置了 {@code spider.nacos.server-addr} 时激活。
+ */
 @Configuration
 @ConditionalOnClass(NacosSpiderDiscovery.class)
 @ConditionalOnProperty(prefix = "spider.nacos", name = "server-addr")
 @AutoConfigureAfter(SpiderAutoConfiguration.class)
 public class SpiderNacosAutoConfiguration {
 
+    /**
+     * 创建基于 Nacos 的服务发现实现。
+     *
+     * @param serverAddr Nacos 服务端地址
+     * @return NacosSpiderDiscovery 实例
+     * @throws Exception 连接 Nacos 失败时抛出
+     */
     @Bean
     @ConditionalOnMissingBean
     public SpiderServiceDiscovery spiderServiceDiscovery(

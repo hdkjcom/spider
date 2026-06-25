@@ -3,11 +3,11 @@ package io.github.spider.core.annotation;
 import java.lang.annotation.*;
 
 /**
- * Declares a remote service client.
+ * 声明一个远程服务客户端。
  *
- * <p>The annotated interface is proxied via JDK dynamic proxy at runtime.
- * Each method representing a remote call must carry one of
- * {@link SpiderGet}, {@link SpiderPost}, {@link SpiderPut}, or {@link SpiderDelete}.
+ * <p>被注解的接口在运行时通过 JDK 动态代理进行代理。
+ * 每个代表远程调用的方法必须携带 {@link SpiderGet}、{@link SpiderPost}、
+ * {@link SpiderPut} 或 {@link SpiderDelete} 之一。
  *
  * <pre>{@code
  * @SpiderClient(name = "user-service", url = "http://localhost:8081")
@@ -19,34 +19,33 @@ import java.lang.annotation.*;
  * }
  * }</pre>
  *
- * <p>In a Spring Boot application, use {@code @EnableSpiderClients} for
- * automatic scanning and bean registration instead of calling
- * {@code SpiderClientFactory} directly.
+ * <p>在 Spring Boot 应用中，使用 {@code @EnableSpiderClients} 进行
+ * 自动扫描和 Bean 注册，而不是直接调用 {@code SpiderClientFactory}。
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface SpiderClient {
 
-    /** Logical service name, used in metrics tags and service discovery lookups. */
+    /** 逻辑服务名称，用于指标标签和服务发现查找。 */
     String name();
 
-    /** Base URL of the remote service, e.g. {@code http://localhost:8081}. */
+    /** 远程服务的基地址，例如 {@code http://localhost:8081}。 */
     String url();
 
     /**
-     * Fallback class that implements this interface.
-     * Invoked after all retries are exhausted.
+     * 实现此接口的降级类。
+     * 在所有重试耗尽后调用。
      */
     Class<?> fallback() default Void.class;
 
     /**
-     * Fallback factory implementing {@code FallbackFactory<T>}.
-     * Takes precedence over {@link #fallback()}.
-     * The factory receives the failure cause for inspection.
+     * 实现 {@code FallbackFactory<T>} 的降级工厂。
+     * 优先级高于 {@link #fallback()}。
+     * 工厂接收失败原因以供检查。
      */
     Class<?> fallbackFactory() default Void.class;
 
-    /** Reserved for future use. */
+    /** 预留用于未来扩展。 */
     Class<?> configuration() default Void.class;
 }

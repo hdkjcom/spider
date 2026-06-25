@@ -1,24 +1,24 @@
 package io.github.spider.core.metadata;
 
 /**
- * Describes how a method parameter is bound to an HTTP request element.
+ * 描述方法参数如何绑定到 HTTP 请求元素。
  */
 public class ParamBinding {
 
     public enum Kind {
-        /** URI path variable: /users/{id} */
+        /** URI 路径变量，例如 /users/{id} */
         PATH,
-        /** URL query parameter: ?name=value */
+        /** URL 查询参数，例如 ?name=value */
         QUERY,
-        /** HTTP header */
+        /** HTTP 头 */
         HEADER,
-        /** Request body */
+        /** 请求体 */
         BODY
     }
 
     private final Kind kind;
-    private final String name;  // parameter name (for PATH, QUERY, HEADER)
-    private final int index;    // method parameter index (0-based)
+    private final String name;  // 参数名称（用于 PATH、QUERY、HEADER）
+    private final int index;    // 方法参数索引（从 0 开始）
 
     public ParamBinding(Kind kind, String name, int index) {
         this.kind = kind;

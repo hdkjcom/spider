@@ -11,13 +11,17 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
- * OkHttp-based SpiderTransport implementation.
- * Converts SpiderRequest to OkHttp Request, executes, converts Response back.
+ * 基于 OkHttp 的 SpiderTransport 实现。
+ * 将 SpiderRequest 转换为 OkHttp 请求并执行，再将响应转为 SpiderResponse。
  */
 public class OkHttpSpiderTransport implements SpiderTransport {
 
     private final OkHttpClient httpClient;
 
+    /**
+     * 使用默认超时配置创建 OkHttpSpiderTransport 实例。
+     * 连接超时 10 秒，读/写超时各 30 秒。
+     */
     public OkHttpSpiderTransport() {
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
@@ -26,19 +30,31 @@ public class OkHttpSpiderTransport implements SpiderTransport {
                 .build();
     }
 
+    /**
+     * 使用自定义 OkHttpClient 实例创建 OkHttpSpiderTransport。
+     *
+     * @param httpClient 自定义的 OkHttpClient 实例
+     */
     public OkHttpSpiderTransport(OkHttpClient httpClient) {
         this.httpClient = httpClient;
     }
 
+    /**
+     * 执行 SpiderRequest，将其转换为 OkHttp 请求发送，并将响应包装为 SpiderResponse。
+     *
+     * @param request Spider 请求对象
+     * @return SpiderResponse 响应对象
+     * @throws IOException 网络 I/O 异常时抛出
+     */
     @Override
     public SpiderResponse execute(SpiderRequest request) throws IOException {
         long start = System.currentTimeMillis();
 
-        // Build OkHttp Request
+        // 构建 OkHttp 请求
         Request.Builder builder = new Request.Builder()
                 .url(request.fullUrl());
 
-        // Set HTTP method
+        // 设置 HTTP 方法
         String method = request.method();
         if ("GET".equalsIgnoreCase(method)) {
             builder.get();
@@ -62,23 +78,23 @@ public class OkHttpSpiderTransport implements SpiderTransport {
                 builder.delete();
             }
         } else {
-            // Default: GET
+            // 默认使用 GET
             builder.get();
         }
 
-        // Add headers
+        // 添加请求头
         for (Map.Entry<String, List<String>> entry : request.headers().entrySet()) {
             for (String value : entry.getValue()) {
                 builder.addHeader(entry.getKey(), value);
             }
         }
 
-        // Execute
+        // 执行请求
         Response okResponse = httpClient.newCall(builder.build()).execute();
 
         long elapsed = System.currentTimeMillis() - start;
 
-        // Convert to SpiderResponse
+        // 转换为 SpiderResponse
         byte[] bodyBytes = okResponse.body() != null ? okResponse.body().bytes() : new byte[0];
 
         return new SpiderResponse()

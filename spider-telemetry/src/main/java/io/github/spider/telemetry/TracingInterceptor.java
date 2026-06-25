@@ -13,8 +13,8 @@ import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapSetter;
 
 /**
- * OpenTelemetry tracing interceptor for Spider.
- * Creates a CLIENT span for each remote call and injects W3C trace-context headers.
+ * Spider 的 OpenTelemetry 链路追踪拦截器。
+ * 为每次远程调用创建一个 CLIENT 类型的 Span，并注入 W3C trace-context 请求头。
  */
 public class TracingInterceptor implements SpiderInterceptor {
 
@@ -23,10 +23,24 @@ public class TracingInterceptor implements SpiderInterceptor {
 
     private final Tracer tracer;
 
+    /**
+     * 使用指定的 Tracer 构造 TracingInterceptor。
+     *
+     * @param tracer OpenTelemetry Tracer 实例
+     */
     public TracingInterceptor(Tracer tracer) { this.tracer = tracer; }
 
+    /**
+     * 使用默认的 Spider Tracer 构造 TracingInterceptor。
+     */
     public TracingInterceptor() { this(GlobalOpenTelemetry.getTracer("spider")); }
 
+    /**
+     * 在请求发送前创建 Span 并注入 W3C trace-context 请求头。
+     *
+     * @param request 待发送的请求
+     * @return 注入了追踪信息后的请求
+     */
     @Override
     public SpiderRequest beforeRequest(SpiderRequest request) {
         Span span = tracer.spanBuilder(request.method() + " " + request.path())
@@ -43,6 +57,12 @@ public class TracingInterceptor implements SpiderInterceptor {
         return request;
     }
 
+    /**
+     * 在收到响应后记录状态码并结束 Span。
+     *
+     * @param response 远程服务的响应
+     * @return 原响应对象
+     */
     @Override
     public SpiderResponse afterResponse(SpiderResponse response) {
         SpanContext ctx = CURRENT_SPAN.get();
@@ -58,6 +78,13 @@ public class TracingInterceptor implements SpiderInterceptor {
         return response;
     }
 
+    /**
+     * 在请求发生异常时记录异常信息到 Span 并结束 Span。
+     *
+     * @param request 发生异常的请求
+     * @param ex      抛出的异常
+     * @return false 表示继续抛出异常
+     */
     @Override
     public boolean onError(SpiderRequest request, Exception ex) {
         SpanContext ctx = CURRENT_SPAN.get();

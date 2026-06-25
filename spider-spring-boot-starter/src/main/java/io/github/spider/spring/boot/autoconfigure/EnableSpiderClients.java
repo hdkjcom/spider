@@ -5,8 +5,8 @@ import org.springframework.context.annotation.Import;
 import java.lang.annotation.*;
 
 /**
- * Enables Spider client proxies. Add this annotation to a Spring Boot application
- * or @Configuration class to auto-scan and register @SpiderClient interfaces as beans.
+ * 启用 Spider 客户端代理。在 Spring Boot 启动类或 {@code @Configuration} 类上添加此注解，
+ * 即可自动扫描并注册标注了 {@code @SpiderClient} 的接口为 Spring Bean。
  *
  * <pre>{@code
  * @SpringBootApplication
@@ -24,9 +24,9 @@ import java.lang.annotation.*;
 @Import(SpiderClientRegistrar.class)
 public @interface EnableSpiderClients {
 
-    /** Base packages to scan for @SpiderClient interfaces. Defaults to the package of the annotated class. */
+    /** 需要扫描 @SpiderClient 接口的基包路径，默认为注解所在类的包路径。 */
     String[] basePackages() default {};
 
-    /** Classes in the same packages or below will be scanned. */
+    /** 指定基类，其所在包及子包将被扫描。 */
     Class<?>[] basePackageClasses() default {};
 }

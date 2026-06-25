@@ -1,12 +1,12 @@
 package io.github.spider.core.policy;
 
 /**
- * Factory for creating fallback instances with access to the failure cause.
+ * 降级实例工厂，可获取失败原因以创建不同的降级对象。
  *
  * <pre>{@code
  * public class PayClientFallbackFactory implements FallbackFactory<PayClient> {
  *     public PayClient create(Throwable cause) {
- *         log.warn("PayClient fallback triggered: {}", cause.getMessage());
+ *         log.warn("降级触发: {}", cause.getMessage());
  *         return id -> PayResult.empty(id);
  *     }
  * }
@@ -14,9 +14,9 @@ package io.github.spider.core.policy;
  * @SpiderClient(name = "pay", url = "...", fallbackFactory = PayClientFallbackFactory.class)
  * }</pre>
  *
- * @param <T> the client interface type
+ * @param <T> 客户端接口类型
  */
 public interface FallbackFactory<T> {
-    /** Create a fallback instance for the given failure. */
+    /** 根据给定的失败原因创建降级实例。 */
     T create(Throwable cause);
 }

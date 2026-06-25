@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.Properties;
 
 /**
- * Nacos-based service discovery implementation.
- * Uses Nacos NamingService to resolve service names to instance URLs.
+ * 基于 Nacos 的服务发现实现。
+ * 使用 Nacos NamingService 将服务名解析为实例 URL 列表。
  *
  * <pre>{@code
  * NacosSpiderDiscovery discovery = new NacosSpiderDiscovery("localhost:8848");
@@ -25,16 +25,33 @@ public class NacosSpiderDiscovery implements SpiderServiceDiscovery {
 
     private final NamingService namingService;
 
+    /**
+     * 通过 Nacos 服务器地址创建服务发现实例。
+     *
+     * @param serverAddr Nacos 服务器地址，例如 "localhost:8848"
+     * @throws NacosException 如果连接 Nacos 服务器失败
+     */
     public NacosSpiderDiscovery(String serverAddr) throws NacosException {
         Properties props = new Properties();
         props.setProperty("serverAddr", serverAddr);
         this.namingService = NacosFactory.createNamingService(props);
     }
 
+    /**
+     * 通过已有的 NamingService 实例创建服务发现实例。
+     *
+     * @param namingService Nacos 命名服务实例
+     */
     public NacosSpiderDiscovery(NamingService namingService) {
         this.namingService = namingService;
     }
 
+    /**
+     * 根据服务名解析出健康的服务实例 URL 列表。
+     *
+     * @param serviceName 服务名称
+     * @return 可用的服务实例 URL 列表（仅包含健康且启用的实例）
+     */
     @Override
     public List<String> resolve(String serviceName) {
         try {

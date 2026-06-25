@@ -1,6 +1,8 @@
 package io.github.spider.console.controller;
 
 import io.github.spider.console.dto.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -12,6 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @RestController
 @RequestMapping("/api")
 public class ReportController {
+
+    private static final Logger log = LoggerFactory.getLogger(ReportController.class);
 
     /** 内存存储：服务名 -> 客户端名 -> 指标数据 */
     private final Map<String, Map<String, Map<String, Object>>> store = new ConcurrentHashMap<>();
@@ -30,6 +34,8 @@ public class ReportController {
         String service = payload.getService() != null ? payload.getService() : "unknown";
         List<MetricDto> metrics = payload.getMetrics() != null ? payload.getMetrics() : Collections.emptyList();
         Map<String, String> breakers = payload.getCircuitBreakers() != null ? payload.getCircuitBreakers() : Collections.emptyMap();
+
+        log.info("收到上报请求，服务={}，条数={}", service, metrics.size());
 
         Map<String, Map<String, Object>> serviceStore = store.computeIfAbsent(service, k -> new ConcurrentHashMap<>());
 
@@ -72,6 +78,7 @@ public class ReportController {
      */
     @GetMapping("/dashboard")
     public DashboardDto dashboard() {
+        log.debug("查询仪表盘");
         DashboardDto dto = new DashboardDto();
         dto.setServices(new ArrayList<>(store.keySet()));
 
