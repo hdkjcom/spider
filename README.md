@@ -145,6 +145,8 @@ spider.console.service-name=my-service
 
 Console shows: service overview, client metrics (QPS, p50/p90/p99), circuit breaker states, rate limiter status, retry counts, tracing status.
 
+The console is optional — Spider works without it. Skip `spider.console.url` if you don't need the monitoring UI.
+
 ## Architecture
 
 ```
