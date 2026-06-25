@@ -119,7 +119,7 @@ public class SpiderDemo {
 
     public static void main(String[] args) throws Exception {
         System.out.println("============================================");
-        System.out.println("  Spider Demo v0.1.0 - Cocoon Breaking Plan");
+        System.out.println("  Spider Demo v0.1.0");
         System.out.println("============================================");
         startServer();
         System.out.println("Server port: " + port);
