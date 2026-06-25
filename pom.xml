@@ -41,7 +41,7 @@
         <module>spider-contract</module>
         <module>spider-grpc</module>
         <module>spider-nacos</module>
-        <module>spider-admin</module>
+        <module>spider-console</module>
         <module>spider-codegen</module>
         <module>spider-benchmark</module>
         <module>spider-telemetry</module>

@@ -1,0 +1,149 @@
+package io.github.spider.core.reporter;
+
+import io.github.spider.core.runtime.SpiderRuntime;
+
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Periodically reports Spider metrics to the Spider Console.
+ *
+ * <p>Configure via system properties or application.properties:
+ * <pre>
+ * spider.console.url=http://localhost:18080
+ * spider.console.interval=10
+ * </pre>
+ */
+public class SpiderReporter {
+
+    private static final ScheduledExecutorService executor =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "spider-reporter");
+                t.setDaemon(true);
+                return t;
+            });
+
+    private static volatile boolean started = false;
+
+    public static void start(String consoleUrl, String serviceName) {
+        if (started) return;
+        started = true;
+        int interval = Integer.parseInt(System.getProperty("spider.console.interval", "10"));
+
+        executor.scheduleAtFixedRate(() -> {
+            try {
+                report(consoleUrl, serviceName);
+            } catch (Exception ignored) {}
+        }, 5, interval, TimeUnit.SECONDS);
+    }
+
+    private static void report(String consoleUrl, String serviceName) throws Exception {
+        SpiderRuntime rt = SpiderRuntime.getInstance();
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("service", serviceName);
+        payload.put("timestamp", new Date());
+
+        List<Map<String, Object>> metrics = new ArrayList<>();
+        for (String name : rt.clientNames()) {
+            SpiderRuntime.ClientStats cs = rt.stats(name);
+            if (cs == null) continue;
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("client", name);
+            m.put("calls", cs.callCount.get());
+            m.put("success", cs.successCount.get());
+            m.put("failure", cs.failureCount.get());
+            m.put("retries", cs.retryCount.get());
+            m.put("fallbacks", cs.fallbackCount.get());
+            m.put("totalLatencyMs", cs.totalLatencyMs.get());
+            m.put("p50", cs.latencyPercentile(50));
+            m.put("p90", cs.latencyPercentile(90));
+            m.put("p99", cs.latencyPercentile(99));
+            metrics.add(m);
+        }
+        payload.put("metrics", metrics);
+
+        // Add circuit breaker states
+        Map<String, Object> breakers = new LinkedHashMap<>();
+        for (Map.Entry<String, io.github.spider.core.policy.SpiderCircuitBreaker.State> e :
+                rt.circuitBreakerStates().entrySet()) {
+            breakers.put(e.getKey(), e.getValue().name());
+        }
+        payload.put("circuitBreakers", breakers);
+
+        // tracing info
+        Map<String, Object> tracing = new LinkedHashMap<>();
+        tracing.put("enabled", isTracingAvailable());
+        payload.put("tracing", tracing);
+
+        String json = buildJson(payload);
+        URL url = new URL(consoleUrl + "/api/report");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setDoOutput(true);
+        conn.setConnectTimeout(3000);
+        conn.setReadTimeout(3000);
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(json.getBytes(StandardCharsets.UTF_8));
+        }
+        conn.getResponseCode();
+        conn.disconnect();
+    }
+
+    private static String buildJson(Map<String, Object> payload) {
+        StringBuilder sb = new StringBuilder("{");
+        sb.append("\"service\":\"").append(esc(payload.get("service"))).append("\",");
+        sb.append("\"metrics\":[");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> metrics = (List<Map<String, Object>>) payload.get("metrics");
+        if (metrics != null) {
+            for (int i = 0; i < metrics.size(); i++) {
+                if (i > 0) sb.append(",");
+                Map<String, Object> m = metrics.get(i);
+                sb.append("{");
+                boolean first = true;
+                for (Map.Entry<String, Object> e : m.entrySet()) {
+                    if (!first) sb.append(",");
+                    first = false;
+                    sb.append("\"").append(esc(e.getKey())).append("\":").append(val(e.getValue()));
+                }
+                sb.append("}");
+            }
+        }
+        sb.append("],\"circuitBreakers\":{");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> breakers = (Map<String, Object>) payload.get("circuitBreakers");
+        if (breakers != null) {
+            boolean first = true;
+            for (Map.Entry<String, Object> e : breakers.entrySet()) {
+                if (!first) sb.append(",");
+                first = false;
+                sb.append("\"").append(esc(e.getKey())).append("\":\"").append(esc(e.getValue())).append("\"");
+            }
+        }
+        sb.append("}}");
+        return sb.toString();
+    }
+
+    private static String val(Object v) {
+        if (v instanceof Number) return v.toString();
+        return "\"" + esc(String.valueOf(v)) + "\"";
+    }
+
+    private static String esc(Object s) { return String.valueOf(s).replace("\"", "\\\""); }
+
+    private static boolean isTracingAvailable() {
+        try {
+            Class.forName("io.opentelemetry.api.OpenTelemetry");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+}

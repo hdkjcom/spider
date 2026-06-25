@@ -10,9 +10,9 @@
         <version>0.1.0</version>
     </parent>
 
-    <artifactId>spider-admin</artifactId>
-    <name>Spider Admin</name>
-    <description>Admin REST API for Spider runtime monitoring.</description>
+    <artifactId>spider-console</artifactId>
+    <name>Spider Console</name>
+    <description>Standalone monitoring console for Spider (Nacos-style).</description>
 
     <dependencies>
         <dependency>
@@ -21,20 +21,9 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.github.spider</groupId>
-            <artifactId>spider-http</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.github.spider</groupId>
-            <artifactId>spider-jackson</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
             <version>2.7.18</version>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -46,4 +35,14 @@
             <artifactId>junit-jupiter</artifactId>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>2.7.18</version>
+            </plugin>
+        </plugins>
+    </build>
 </project>

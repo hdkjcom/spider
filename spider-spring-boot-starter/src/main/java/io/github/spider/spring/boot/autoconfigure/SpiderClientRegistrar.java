@@ -82,6 +82,7 @@ public class SpiderClientRegistrar implements ImportBeanDefinitionRegistrar, Res
 
         AbstractBeanDefinition beanDefinition = builder.getBeanDefinition();
         beanDefinition.setPrimary(true);
+        beanDefinition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
 
         String beanName = StringUtils.uncapitalize(clientName) + "SpiderClient";
         BeanDefinitionHolder holder = new BeanDefinitionHolder(beanDefinition, beanName, new String[]{clientInterface.getName()});
@@ -90,7 +91,12 @@ public class SpiderClientRegistrar implements ImportBeanDefinitionRegistrar, Res
 
     private ClassPathScanningCandidateComponentProvider getScanner() {
         ClassPathScanningCandidateComponentProvider scanner =
-                new ClassPathScanningCandidateComponentProvider(false, environment);
+                new ClassPathScanningCandidateComponentProvider(false, environment) {
+            @Override
+            protected boolean isCandidateComponent(AnnotatedBeanDefinition beanDefinition) {
+                return beanDefinition.getMetadata().isIndependent();
+            }
+        };
         scanner.setResourceLoader(resourceLoader);
         scanner.addIncludeFilter(new AnnotationTypeFilter(SpiderClient.class));
         return scanner;

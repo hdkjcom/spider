@@ -91,6 +91,18 @@ public class SpiderClientFactory {
         SpiderTransport transport = this.transport;
         if (circuitBreaker != null) {
             transport = new io.github.spider.core.transport.CircuitBreakerTransport(transport, circuitBreaker);
+        } else {
+            io.github.spider.core.annotation.SpiderCircuitBreaker cbAnn =
+                    clientInterface.getAnnotation(io.github.spider.core.annotation.SpiderCircuitBreaker.class);
+            if (cbAnn != null) {
+                CountingCircuitBreaker cb = new CountingCircuitBreaker(cbAnn);
+                transport = new io.github.spider.core.transport.CircuitBreakerTransport(transport, cb);
+                io.github.spider.core.runtime.SpiderRuntime.getInstance().registerCircuitBreaker(ann.name(), cb);
+            }
+        }
+
+        if (circuitBreaker != null) {
+            io.github.spider.core.runtime.SpiderRuntime.getInstance().registerCircuitBreaker(ann.name(), circuitBreaker);
         }
 
         String name = ann.name();

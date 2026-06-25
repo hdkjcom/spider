@@ -23,6 +23,8 @@ Spider = **声明式远程调用** + **弹性治理** + **契约保护** + **可
 - 服务发现：SPI，内置内存版和 Nacos 实现
 - 契约校验：响应校验拦截器
 - Spring Boot starter：`@EnableSpiderClients`，自动扫描，`application.yml` 配置
+- 独立控制台：监控所有 Spider 服务的 Dashboard（Nacos 风格）
+- 自动上报：通过 `spider.console.url` 配置自动向控制台上报指标
 - 核心模块零依赖 Spring，兼容 Java 8
 
 ## 快速开始
