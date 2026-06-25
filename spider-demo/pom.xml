@@ -5,9 +5,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.github.spider</groupId>
+        <groupId>io.github.hdkjcom.spider</groupId>
         <artifactId>spider</artifactId>
-        <version>0.1.0</version>
+        <version>0.1.2</version>
     </parent>
 
     <artifactId>spider-demo</artifactId>
@@ -16,26 +16,27 @@
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
+        <central.publishing.skip>true</central.publishing.skip>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>io.github.spider</groupId>
+            <groupId>io.github.hdkjcom.spider</groupId>
             <artifactId>spider-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.github.spider</groupId>
+            <groupId>io.github.hdkjcom.spider</groupId>
             <artifactId>spider-http</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.github.spider</groupId>
+            <groupId>io.github.hdkjcom.spider</groupId>
             <artifactId>spider-jackson</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.github.spider</groupId>
+            <groupId>io.github.hdkjcom.spider</groupId>
             <artifactId>spider-spring-boot-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
