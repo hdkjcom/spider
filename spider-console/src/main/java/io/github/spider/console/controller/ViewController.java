@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 @ConditionalOnClass(name = "org.thymeleaf.spring5.SpringTemplateEngine")
 public class ViewController {
 
-    @GetMapping("/")
+    @GetMapping("/spider")
     public String index() {
         return "console";
     }

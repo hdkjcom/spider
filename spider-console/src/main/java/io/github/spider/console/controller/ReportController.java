@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 指标上报与查询接口。
  */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/spider/api")
 public class ReportController {
 
     private static final Logger log = LoggerFactory.getLogger(ReportController.class);

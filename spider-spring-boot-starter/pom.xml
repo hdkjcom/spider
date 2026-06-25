@@ -88,6 +88,12 @@
             <artifactId>spider-codegen</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- console -->
+        <dependency>
+            <groupId>io.github.hdkjcom.spider</groupId>
+            <artifactId>spider-console</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>

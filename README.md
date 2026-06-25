@@ -130,13 +130,13 @@ Startup banner: `SpiderClientFactory` prints an ASCII SPIDER banner on first use
 
 ### Monitoring Console
 
-Run the standalone console:
+When using the starter, the console dashboard is available directly at `http://localhost:8086/spider` (your app's port).
+
+For multi-service monitoring, run the standalone console:
 
 ```bash
 mvn exec:java -pl spider-console -Dexec.mainClass=io.github.hdkjcom.spider.console.SpiderConsoleApplication
 ```
-
-Open `http://localhost:18080`. Services auto-report via config:
 
 ```properties
 spider.console.url=http://localhost:18080
@@ -145,7 +145,7 @@ spider.console.service-name=my-service
 
 Console shows: service overview, client metrics (QPS, p50/p90/p99), circuit breaker states, rate limiter status, retry counts, tracing status.
 
-The console is optional — Spider works without it. Skip `spider.console.url` if you don't need the monitoring UI.
+The console is optional — Spider works without it. Skip `spider.console.url` if you don't need monitoring.
 
 ## Architecture
 
