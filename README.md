@@ -34,15 +34,15 @@ Spider = **Declarative Remote Call** + **Elastic Governance** + **Contract Prote
 ```xml
 <!-- Spring Boot: one dependency -->
 <dependency>
-    <groupId>io.github.spider</groupId>
+    <groupId>io.github.hdkjcom.spider</groupId>
     <artifactId>spider-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.2</version>
 </dependency>
 
 <!-- Plain Java: three dependencies -->
-<dependency><groupId>io.github.spider</groupId><artifactId>spider-core</artifactId><version>0.1.0</version></dependency>
-<dependency><groupId>io.github.spider</groupId><artifactId>spider-http</artifactId><version>0.1.0</version></dependency>
-<dependency><groupId>io.github.spider</groupId><artifactId>spider-jackson</artifactId><version>0.1.0</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-core</artifactId><version>0.1.2</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-http</artifactId><version>0.1.2</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-jackson</artifactId><version>0.1.2</version></dependency>
 ```
 
 ### Define a client
@@ -133,7 +133,7 @@ Startup banner: `SpiderClientFactory` prints an ASCII SPIDER banner on first use
 Run the standalone console:
 
 ```bash
-mvn exec:java -pl spider-console -Dexec.mainClass=io.github.spider.console.SpiderConsoleApplication
+mvn exec:java -pl spider-console -Dexec.mainClass=io.github.hdkjcom.spider.console.SpiderConsoleApplication
 ```
 
 Open `http://localhost:18080`. Services auto-report via config:
@@ -167,7 +167,7 @@ Console shows: service overview, client metrics (QPS, p50/p90/p99), circuit brea
 | `spider-contract` | Contract validation interceptor |
 | `spider-grpc` | gRPC transport (JSON/DynamicMessage) |
 | `spider-nacos` | Nacos service discovery |
-| `spider-admin` | Dashboard + Actuator endpoint |
+| `spider-console` | Standalone monitoring console |
 | `spider-codegen` | OpenAPI to SpiderClient generator |
 | `spider-telemetry` | OpenTelemetry tracing |
 | `spider-config` | Dynamic configuration SPI |
@@ -182,7 +182,7 @@ Console shows: service overview, client metrics (QPS, p50/p90/p99), circuit brea
 mvn compile
 mvn test
 mvn package -DskipTests
-mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.spider.demo.SpiderDemo
+mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.hdkjcom.spider.demo.SpiderDemo
 ```
 
 Requires JDK 8+, Maven 3.6+.
@@ -195,7 +195,7 @@ Requires JDK 8+, Maven 3.6+.
 | Spring Boot starter + Micrometer metrics | Done |
 | Circuit breaker + rate limiter + contract + service discovery | Done |
 | gRPC + Nacos + Dashboard + OpenTelemetry | Done |
-| Maven Central release | Pending Sonatype |
+| Maven Central release | Done |
 
 ## vs OpenFeign
 
