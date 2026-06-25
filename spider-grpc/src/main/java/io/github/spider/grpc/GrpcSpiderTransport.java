@@ -1,0 +1,218 @@
+package io.github.spider.grpc;
+
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.util.JsonFormat;
+import io.github.spider.core.transport.SpiderRequest;
+import io.github.spider.core.transport.SpiderResponse;
+import io.github.spider.core.transport.SpiderTransport;
+import io.grpc.*;
+import io.grpc.stub.ClientCalls;
+import io.grpc.stub.StreamObserver;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Generic gRPC transport for Spider.
+ *
+ * Converts SpiderRequest (JSON) → gRPC DynamicMessage → unary call → DynamicMessage → JSON response.
+ */
+public class GrpcSpiderTransport implements SpiderTransport {
+
+    private final ManagedChannel channel;
+    private final Map<String, GrpcMethodBinding> bindings = new ConcurrentHashMap<>();
+
+    public GrpcSpiderTransport(ManagedChannel channel) {
+        this.channel = channel;
+    }
+
+    /**
+     * Register a gRPC method binding.
+     *
+     * @param spiderPath   the Spider path (e.g., "/greet")
+     * @param serviceName  gRPC service name (e.g., "greet.Greeter")
+     * @param methodName   gRPC method name (e.g., "SayHello")
+     * @param methodDesc   the gRPC MethodDescriptor
+     * @param requestDesc  the protobuf descriptor for the request message
+     * @param responseDesc the protobuf descriptor for the response message
+     */
+    public void registerMethod(String spiderPath, String serviceName, String methodName,
+                                MethodDescriptor<DynamicMessage, DynamicMessage> methodDesc,
+                                Descriptors.Descriptor requestDesc,
+                                Descriptors.Descriptor responseDesc) {
+        String fullMethodName = MethodDescriptor.generateFullMethodName(serviceName, methodName);
+        bindings.put(spiderPath, new GrpcMethodBinding(fullMethodName, methodDesc, requestDesc, responseDesc));
+    }
+
+    @Override
+    public SpiderResponse execute(SpiderRequest request) throws IOException {
+        GrpcMethodBinding binding = findBinding(request.path());
+        if (binding == null) {
+            throw new IOException("No gRPC method binding found for path: " + request.path());
+        }
+
+        long start = System.currentTimeMillis();
+
+        // Build request DynamicMessage from JSON body
+        DynamicMessage requestMessage = buildRequest(binding, request.body());
+
+        // Execute unary gRPC call
+        ClientCall<DynamicMessage, DynamicMessage> call =
+                channel.newCall(binding.methodDescriptor, CallOptions.DEFAULT);
+        DynamicMessage responseMessage;
+        try {
+            responseMessage = ClientCalls.blockingUnaryCall(call, requestMessage);
+        } catch (StatusRuntimeException e) {
+            throw new IOException("gRPC call failed: " + e.getStatus(), e);
+        }
+
+        long elapsed = System.currentTimeMillis() - start;
+
+        // Convert response to JSON
+        byte[] responseBody = new byte[0];
+        if (responseMessage != null) {
+            try {
+                String json = JsonFormat.printer().print(responseMessage);
+                responseBody = json.getBytes(StandardCharsets.UTF_8);
+            } catch (InvalidProtocolBufferException e) {
+                throw new IOException("Failed to serialize gRPC response to JSON", e);
+            }
+        }
+
+        return new SpiderResponse()
+                .statusCode(200)
+                .bodyBytes(responseBody)
+                .elapsedMillis(elapsed);
+    }
+
+    private DynamicMessage buildRequest(GrpcMethodBinding binding, byte[] jsonBody) throws IOException {
+        if (jsonBody == null || jsonBody.length == 0) {
+            return DynamicMessage.getDefaultInstance(binding.requestDescriptor);
+        }
+        try {
+            String json = new String(jsonBody, StandardCharsets.UTF_8);
+            DynamicMessage.Builder builder = DynamicMessage.newBuilder(binding.requestDescriptor);
+            JsonFormat.parser().merge(json, builder);
+            return builder.build();
+        } catch (InvalidProtocolBufferException e) {
+            throw new IOException("Failed to parse request JSON to protobuf", e);
+        }
+    }
+
+    private GrpcMethodBinding findBinding(String path) {
+        GrpcMethodBinding binding = bindings.get(path);
+        if (binding != null) return binding;
+
+        String bestMatch = null;
+        for (String key : bindings.keySet()) {
+            if (path.startsWith(key) && (bestMatch == null || key.length() > bestMatch.length())) {
+                bestMatch = key;
+            }
+        }
+        return bestMatch != null ? bindings.get(bestMatch) : null;
+    }
+
+    /** Shutdown the underlying channel. */
+    public void shutdown() throws InterruptedException {
+        channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+    }
+
+    // ---- Streaming support ----
+
+    /**
+     * Execute a server-streaming gRPC call and return an iterator of responses.
+     * Each response is a JSON-encoded DynamicMessage.
+     */
+    public Iterator<String> executeStreaming(SpiderRequest request) throws IOException {
+        GrpcMethodBinding binding = findBinding(request.path());
+        if (binding == null) {
+            throw new IOException("No gRPC method binding found for path: " + request.path());
+        }
+
+        DynamicMessage requestMessage = buildRequest(binding, request.body());
+        ClientCall<DynamicMessage, DynamicMessage> call =
+                channel.newCall(binding.methodDescriptor, CallOptions.DEFAULT);
+
+        BlockingQueue<String> responseQueue = new ArrayBlockingQueue<>(256);
+        List<String> responses = new ArrayList<>();
+
+        ClientCalls.asyncServerStreamingCall(call, requestMessage,
+                new StreamObserver<DynamicMessage>() {
+                    @Override
+                    public void onNext(DynamicMessage value) {
+                        try {
+                            String json = com.google.protobuf.util.JsonFormat.printer().print(value);
+                            responseQueue.add(json);
+                        } catch (Exception e) {
+                            onError(e);
+                        }
+                    }
+                    @Override
+                    public void onError(Throwable t) {
+                        responseQueue.add("__ERROR__:" + t.getMessage());
+                    }
+                    @Override
+                    public void onCompleted() {
+                        responseQueue.add("__DONE__");
+                    }
+                });
+
+        return new Iterator<String>() {
+            private String next = null;
+            private boolean done = false;
+
+            @Override
+            public boolean hasNext() {
+                if (done) return false;
+                if (next != null) return true;
+                try {
+                    next = responseQueue.poll(30, TimeUnit.SECONDS);
+                    if (next == null) return false; // timeout
+                    if ("__DONE__".equals(next)) { done = true; next = null; return false; }
+                    if (next.startsWith("__ERROR__:")) {
+                        throw new RuntimeException(next.substring(10));
+                    }
+                    return true;
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+
+            @Override
+            public String next() {
+                if (!hasNext()) throw new IllegalStateException("No more elements");
+                String result = next;
+                next = null;
+                return result;
+            }
+        };
+    }
+
+    // ---- Inner types ----
+
+    private static class GrpcMethodBinding {
+        final String fullMethodName;
+        final MethodDescriptor<DynamicMessage, DynamicMessage> methodDescriptor;
+        final Descriptors.Descriptor requestDescriptor;
+        final Descriptors.Descriptor responseDescriptor;
+
+        GrpcMethodBinding(String fullMethodName, MethodDescriptor<DynamicMessage, DynamicMessage> methodDescriptor,
+                          Descriptors.Descriptor requestDescriptor, Descriptors.Descriptor responseDescriptor) {
+            this.fullMethodName = fullMethodName;
+            this.methodDescriptor = methodDescriptor;
+            this.requestDescriptor = requestDescriptor;
+            this.responseDescriptor = responseDescriptor;
+        }
+    }
+}
