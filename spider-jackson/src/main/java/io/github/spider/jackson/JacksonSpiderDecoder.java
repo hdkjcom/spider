@@ -2,6 +2,7 @@ package io.github.spider.jackson;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.github.spider.core.codec.SpiderDecoder;
 
 import java.lang.reflect.Type;
@@ -52,9 +53,12 @@ public class JacksonSpiderDecoder implements SpiderDecoder {
         if (bodyBytes == null || bodyBytes.length == 0) {
             return null;
         }
-        // String return type: return raw body, don't parse JSON
         if (returnType == String.class) {
-            return new String(bodyBytes, StandardCharsets.UTF_8);
+            try {
+                return objectMapper.readValue(bodyBytes, String.class);
+            } catch (JsonProcessingException ignored) {
+                return new String(bodyBytes, StandardCharsets.UTF_8);
+            }
         }
         JavaType javaType = objectMapper.getTypeFactory().constructType(returnType);
         return objectMapper.readValue(bodyBytes, javaType);

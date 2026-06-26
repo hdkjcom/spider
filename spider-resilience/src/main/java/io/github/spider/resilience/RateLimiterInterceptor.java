@@ -1,7 +1,7 @@
 package io.github.spider.resilience;
 
 import io.github.spider.core.annotation.RateLimit;
-import io.github.spider.core.client.SpiderClientException;
+import io.github.spider.core.exception.SpiderRateLimitException;
 import io.github.spider.core.interceptor.SpiderInterceptor;
 import io.github.spider.core.transport.SpiderRequest;
 import io.github.spider.core.transport.SpiderResponse;
@@ -45,16 +45,16 @@ public class RateLimiterInterceptor implements SpiderInterceptor {
 
     /**
      * 在请求发送前执行限流检查。
-     * 如果超过速率限制，则抛出 {@link SpiderClientException} 快速失败。
+     * 如果超过速率限制，则抛出 {@link SpiderRateLimitException} 快速失败。
      *
      * @param request 即将发送的请求
      * @return 未经修改的原始请求（限流通过时）
-     * @throws SpiderClientException 当速率限制被触发时
+     * @throws SpiderRateLimitException 当速率限制被触发时
      */
     @Override
     public SpiderRequest beforeRequest(SpiderRequest request) {
         if (!rateLimiter.acquirePermission()) {
-            throw new SpiderClientException("Rate limit exceeded for " + request.fullUrl());
+            throw new SpiderRateLimitException(request.fullUrl());
         }
         return request;
     }

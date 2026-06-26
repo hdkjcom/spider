@@ -15,6 +15,7 @@ public class DashboardDto {
     private Map<String, String> circuitBreakers = new LinkedHashMap<>();
     /** 数据点总数 */
     private int snapshotCount;
+    private List<Map<String, Object>> recentReports = new ArrayList<>();
     /** 链路追踪是否已启用 */
     private boolean tracingEnabled;
     /** 数据生成时间 */
@@ -28,6 +29,8 @@ public class DashboardDto {
     public void setCircuitBreakers(Map<String, String> circuitBreakers) { this.circuitBreakers = circuitBreakers; }
     public int getSnapshotCount() { return snapshotCount; }
     public void setSnapshotCount(int snapshotCount) { this.snapshotCount = snapshotCount; }
+    public List<Map<String, Object>> getRecentReports() { return recentReports; }
+    public void setRecentReports(List<Map<String, Object>> recentReports) { this.recentReports = recentReports; }
     public boolean isTracingEnabled() { return tracingEnabled; }
     public void setTracingEnabled(boolean tracingEnabled) { this.tracingEnabled = tracingEnabled; }
     public Date getTime() { return time; }

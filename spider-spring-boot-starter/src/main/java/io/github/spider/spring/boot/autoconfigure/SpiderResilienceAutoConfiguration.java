@@ -6,6 +6,7 @@ import io.github.spider.resilience.RateLimiterInterceptor;
 import io.github.spider.resilience.ResilienceCircuitBreaker;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import java.time.Duration;
@@ -26,6 +27,7 @@ public class SpiderResilienceAutoConfiguration {
      */
     @Bean
     @ConditionalOnClass(RateLimiterInterceptor.class)
+    @ConditionalOnMissingBean
     public SpiderInterceptor rateLimiterInterceptor() {
         return new RateLimiterInterceptor(
                 io.github.resilience4j.ratelimiter.RateLimiter.ofDefaults("spider-default"));

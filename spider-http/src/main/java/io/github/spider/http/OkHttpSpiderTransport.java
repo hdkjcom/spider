@@ -13,6 +13,12 @@ import java.util.concurrent.TimeUnit;
 /**
  * 基于 OkHttp 的 SpiderTransport 实现。
  * 将 SpiderRequest 转换为 OkHttp 请求并执行，再将响应转为 SpiderResponse。
+ *
+ * <p>支持两种超时模式：
+ * <ul>
+ *   <li>如果 {@link SpiderRequest#timeoutMillis()} &gt; 0，则为该请求创建带有自定义超时的临时 client</li>
+ *   <li>否则使用默认的 OkHttpClient 实例</li>
+ * </ul>
  */
 public class OkHttpSpiderTransport implements SpiderTransport {
 
@@ -49,6 +55,16 @@ public class OkHttpSpiderTransport implements SpiderTransport {
     @Override
     public SpiderResponse execute(SpiderRequest request) throws IOException {
         long start = System.currentTimeMillis();
+
+        // 如果请求指定了超时，为该请求创建带自定义超时的临时 client
+        OkHttpClient client = this.httpClient;
+        int requestTimeout = request.timeoutMillis();
+        if (requestTimeout > 0) {
+            client = this.httpClient.newBuilder()
+                    .callTimeout(requestTimeout, TimeUnit.MILLISECONDS)
+                    .readTimeout(requestTimeout, TimeUnit.MILLISECONDS)
+                    .build();
+        }
 
         // 构建 OkHttp 请求
         Request.Builder builder = new Request.Builder()
@@ -90,7 +106,7 @@ public class OkHttpSpiderTransport implements SpiderTransport {
         }
 
         // 执行请求
-        Response okResponse = httpClient.newCall(builder.build()).execute();
+        Response okResponse = client.newCall(builder.build()).execute();
 
         long elapsed = System.currentTimeMillis() - start;
 

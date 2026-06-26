@@ -1,5 +1,6 @@
 package io.github.spider.contract;
 
+import io.github.spider.core.exception.SpiderContractViolationException;
 import io.github.spider.core.interceptor.SpiderInterceptor;
 import io.github.spider.core.transport.SpiderResponse;
 
@@ -19,7 +20,12 @@ public class ContractInterceptor implements SpiderInterceptor {
     @Override
     public SpiderResponse afterResponse(SpiderResponse response) {
         if (responseValidator != null && response.isSuccessful()) {
-            responseValidator.validate(response);
+            try {
+                responseValidator.validate(response);
+            } catch (RuntimeException e) {
+                throw new SpiderContractViolationException(
+                        "Contract validation failed: " + e.getMessage(), e);
+            }
         }
         return response;
     }

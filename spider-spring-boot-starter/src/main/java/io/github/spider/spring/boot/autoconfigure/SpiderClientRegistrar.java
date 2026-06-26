@@ -88,8 +88,7 @@ public class SpiderClientRegistrar implements ImportBeanDefinitionRegistrar, Res
         builder.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);
 
         AbstractBeanDefinition beanDefinition = builder.getBeanDefinition();
-        beanDefinition.setPrimary(true);
-        beanDefinition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+        beanDefinition.setRole(BeanDefinition.ROLE_APPLICATION);
 
         String beanName = StringUtils.uncapitalize(clientName) + "SpiderClient";
         BeanDefinitionHolder holder = new BeanDefinitionHolder(beanDefinition, beanName, new String[]{clientInterface.getName()});
