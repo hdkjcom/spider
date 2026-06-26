@@ -219,19 +219,6 @@ mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.spider.demo.SpiderDemo
 
 要求 JDK 8+，Maven 3.6+。
 
-## 路线图
-
-| 阶段 | 状态 |
-|---|---|
-| 声明式调用 + 重试 + 降级 + 拦截器 | ✅ 已完成 |
-| Spring Boot Starter + Micrometer 指标 | ✅ 已完成 |
-| 熔断 + 限流 + 契约 + 服务发现 | ✅ 已完成 |
-| gRPC + Nacos + Dashboard + OpenTelemetry | ✅ 已完成 |
-| 过滤器链管道 + 服务发现 + 负载均衡 | ✅ 已完成 |
-| 配置优先级 + 类型化异常体系 | ✅ 已完成 |
-| 每客户端配置 + Actuator/健康检查 + Spring Boot 3.x | ✅ 已完成 |
-| 标准化指标 + 追踪 + 文档 | ✅ 已完成 |
-
 ## 对比 OpenFeign
 
 | 能力 | Spider | OpenFeign |
