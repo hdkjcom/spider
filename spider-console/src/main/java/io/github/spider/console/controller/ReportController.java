@@ -145,9 +145,21 @@ public class ReportController {
             Collections.reverse(recent);
             dto.setRecentReports(recent);
         }
-        dto.setTracingEnabled(tracingEnabled);
+        // 嵌入式模式下追踪状态从未上报，检查 classpath 上是否有 OpenTelemetry
+        boolean tracingActive = tracingEnabled || isOpenTelemetryPresent();
+        dto.setTracingEnabled(tracingActive);
         dto.setTime(new Date());
         return dto;
+    }
+
+    /** 检查 classpath 上是否存在 OpenTelemetry Tracer。 */
+    private static boolean isOpenTelemetryPresent() {
+        try {
+            Class.forName("io.opentelemetry.api.trace.Tracer");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
     }
 
     /** 从 SpiderRuntime 收集所有客户端统计信息 */
