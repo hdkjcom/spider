@@ -78,7 +78,6 @@ public class ReportController {
      */
     @GetMapping("/dashboard")
     public DashboardDto dashboard() {
-        log.debug("查询仪表盘");
         DashboardDto dto = new DashboardDto();
         dto.setServices(new ArrayList<>(store.keySet()));
 
