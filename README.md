@@ -10,21 +10,26 @@ Spider = **Declarative Remote Call** + **Elastic Governance** + **Contract Prote
 
 - Declarative HTTP client via Java annotations (`@SpiderGet`, `@SpiderPost`, `@SpiderPut`, `@SpiderDelete`)
 - JDK Dynamic Proxy — no ByteBuddy, no CGLIB, interfaces only
+- **Filter chain pipeline** — pluggable invocation filters for request building, discovery, retry, transport, decode, metrics, fallback
 - Pluggable transport — OkHttp (HTTP), gRPC, extensible via SPI
-- JSON codec — Jackson-based with generic type support
-- Retry — GET idempotent by default, configurable attempts, exponential backoff, skip 4xx
+- JSON codec — Jackson-based with generic type support, String responses auto-detect JSON vs plain text
+- Retry — configurable attempts, exponential backoff, smart skip (4xx/config/circuit-breaker errors never retried)
 - Circuit breaker — built-in counting breaker + Resilience4j integration
 - Rate limiting — annotation-driven, Resilience4j backed
 - Fallback — interface-level graceful degradation, `FallbackFactory` for cause inspection
 - Interceptors — before/after/onError hooks
-- Timeout — method-level and client-level
-- Metrics — Micrometer integration (success, failure, retry, fallback, duration)
-- Tracing — OpenTelemetry W3C trace-context auto-injection
-- Service discovery — SPI with in-memory and Nacos implementations
+- Timeout — per-request timeout honored by transport
+- **Service discovery** — SPI with in-memory and Nacos implementations
+- **Load balancing** — round-robin (default), random, extensible via SPI
+- **Typed exception hierarchy** — 11 exception types with `ErrorCategory` for precise retry and metrics decisions
+- **Configuration priority** — method annotation > interface annotation > Spring properties > builder > framework defaults
+- **Per-client configuration** — `spider.clients.<name>.*` in `application.yml`
+- Metrics — Micrometer integration with `error_type` tag (`spider.client.requests`, `retries`, `fallbacks`, `duration`)
+- Tracing — OpenTelemetry W3C trace-context auto-injection, query-param-safe URLs
 - Contract validation — response validation interceptor
 - Spring Boot starter — `@EnableSpiderClients`, auto-scan, `application.yml` config
-- Standalone Console — monitoring dashboard for all Spider services (Nacos-style)
-- Auto-reporting — services report metrics to Console via `spider.console.url` config
+- Standalone Console — monitoring dashboard at `/spider`, method-level client summaries
+- Actuator endpoints — `/actuator/spider`, `/actuator/spider/clients/{name}`, health indicator with per-client stats
 - No Spring required — core modules run with plain Java 8
 
 ## Quick Start
@@ -74,6 +79,28 @@ UserClient client = factory.create(UserClient.class);
 UserDTO user = client.getUser(1L);  // GET http://localhost:8081/users/1
 ```
 
+### Service discovery and load balancing
+
+`url` is optional when a `SpiderServiceDiscovery` is configured. Spider resolves instances by `@SpiderClient.name` and uses round-robin load balancing by default.
+
+```java
+@SpiderClient(name = "user-service")
+public interface UserClient {
+    @SpiderGet("/users/{id}")
+    UserDTO getUser(@Path("id") Long id);
+}
+
+SpiderClientFactory factory = SpiderClientFactory.builder()
+        .transport(new OkHttpSpiderTransport())
+        .decoder(new JacksonSpiderDecoder())
+        .encoder(new JacksonSpiderEncoder())
+        .serviceDiscovery(new SimpleServiceDiscovery()
+                .register("user-service",
+                        "http://localhost:8081",
+                        "http://localhost:8082"))
+        .build();
+```
+
 ### Spring Boot
 
 ```java
@@ -114,17 +141,60 @@ public interface PayClient {
 
 ### Observability
 
-| Metric (Micrometer) | Type |
-|---|---|
-| `spider.requests.success` | Counter |
-| `spider.requests.failure` | Counter |
-| `spider.requests.retry` | Counter |
-| `spider.requests.fallback` | Counter |
-| `spider.requests.duration` | Timer |
+| Metric (Micrometer) | Type | Tags |
+|---|---|---|
+| `spider.client.requests` | Counter | client, method, outcome (success/failure), error_type |
+| `spider.client.retries` | Counter | client, method, error_type |
+| `spider.client.fallbacks` | Counter | client, method |
+| `spider.client.duration` | Timer | client, method |
 
-Tags: `client` (service name), `method` (method name).
+Tracing: `TracingInterceptor` auto-injects W3C trace-context headers, records `exception.type` on span errors, strips query params from URLs.
 
-Tracing: `TracingInterceptor` auto-injects W3C trace-context headers (requires `spider-telemetry` on classpath).
+### Error Handling
+
+Spider provides 11 typed exceptions under `SpiderException` with precise `ErrorCategory`:
+
+```java
+try {
+    userClient.getUser(1L);
+} catch (SpiderHttpClientException e) {
+    // 4xx — never retried, check request parameters
+} catch (SpiderHttpServerException e) {
+    // 5xx — may be retried
+} catch (SpiderCircuitBreakerOpenException e) {
+    // Circuit breaker is OPEN — fast-fail
+} catch (SpiderRateLimitException e) {
+    // Rate limit exceeded
+} catch (SpiderException e) {
+    // Other Spider errors
+    log.error("category={}", e.category());
+}
+```
+
+See [Error Handling](docs/error-handling.md) for the full hierarchy.
+
+### Configuration
+
+Spider resolves configuration from multiple sources with a clear priority:
+
+```text
+method annotation > interface annotation > Spring properties > builder defaults > framework defaults
+```
+
+Per-client overrides in `application.yml`:
+
+```yaml
+spider:
+  default-timeout: 5000
+  clients:
+    user-service:
+      url: http://user:8081
+      timeout: 2000
+      retry:
+        max-attempts: 5
+```
+
+See [Configuration Reference](docs/configuration.md) for all options.
 
 ### Monitoring Console
 
@@ -137,7 +207,7 @@ http://localhost:8086/spider
 For multi-service unified monitoring, run a standalone console:
 
 ```bash
-mvn exec:java -pl spider-console -Dexec.mainClass=io.github.hdkjcom.spider.console.SpiderConsoleApplication
+mvn exec:java -pl spider-console -Dexec.mainClass=io.github.spider.console.SpiderConsoleApplication
 ```
 
 ```properties
@@ -153,11 +223,13 @@ The console is optional — Spider works without it. Skip `spider.console.url` i
 
 ```
 @SpiderClient interface -> JDK Dynamic Proxy -> SpiderInvocationHandler
-  -> MethodMetadata -> RequestTemplate -> SpiderRequest
-  -> Pipeline (interceptor -> rate limit -> circuit breaker -> retry -> timeout -> transport -> decode -> fallback)
+  -> SpiderInvocationContext -> SpiderFilterChain
+  -> Filters: ResponseContext -> ServiceDiscovery -> RequestBuild ->
+     Interceptor -> Fallback -> Retry -> Transport -> Decode -> Metrics
   -> SpiderTransport (HTTP / gRPC) -> Remote Service
-  -> SpiderResponse -> Decode -> return
 ```
+
+The invocation pipeline is a pluggable filter chain. Each governance concern (retry, circuit breaker, rate limit, metrics, tracing, fallback) is a discrete, testable filter that can be reordered or replaced.
 
 ### Modules
 
@@ -176,7 +248,7 @@ The console is optional — Spider works without it. Skip `spider.console.url` i
 | `spider-telemetry` | OpenTelemetry tracing |
 | `spider-config` | Dynamic configuration SPI |
 | `spider-messaging` | Message queue transport SPI |
-| `spider-console` | Standalone monitoring console |
+| `spider-benchmark` | JMH benchmarks |
 | `spider-spring-boot-starter` | All-in-one Spring Boot starter |
 | `spider-demo` | Self-contained demo |
 
@@ -186,7 +258,7 @@ The console is optional — Spider works without it. Skip `spider.console.url` i
 mvn compile
 mvn test
 mvn package -DskipTests
-mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.hdkjcom.spider.demo.SpiderDemo
+mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.spider.demo.SpiderDemo
 ```
 
 Requires JDK 8+, Maven 3.6+.
@@ -195,35 +267,53 @@ Requires JDK 8+, Maven 3.6+.
 
 | Phase | Status |
 |---|---|
-| Declarative calls + retry + fallback + interceptors | Done |
-| Spring Boot starter + Micrometer metrics | Done |
-| Circuit breaker + rate limiter + contract + service discovery | Done |
-| gRPC + Nacos + Dashboard + OpenTelemetry | Done |
-| Maven Central release | Done |
+| Declarative calls + retry + fallback + interceptors | ✅ Done |
+| Spring Boot starter + Micrometer metrics | ✅ Done |
+| Circuit breaker + rate limiter + contract + service discovery | ✅ Done |
+| gRPC + Nacos + Dashboard + OpenTelemetry | ✅ Done |
+| Filter chain pipeline + service discovery + load balancing | ✅ Done |
+| Configuration priority + typed exception hierarchy | ✅ Done |
+| Per-client config + actuator/health + Spring Boot 3.x compat | ✅ Done |
+| Standardized metrics + tracing + documentation | ✅ Done |
+
+See [docs/main.md](docs/main.md) for the full improvement plan.
 
 ## vs OpenFeign
 
 | Feature | Spider | OpenFeign |
 |---|---|---|
 | Annotations | Yes | Yes |
-| Retry | Built-in | Spring Retry |
+| Retry | Built-in, smart skip by exception type | Spring Retry |
 | Circuit breaker | Built-in | Sentinel/Hystrix |
 | Rate limiting | Built-in | No |
-| Fallback with cause | Built-in | Spring Cloud |
+| Load balancing | Round-robin, random, SPI | Ribbon/Spring Cloud LoadBalancer |
+| Fallback with cause | Built-in, FallbackFactory | Spring Cloud |
 | Interceptors | before/after/onError | RequestInterceptor |
-| Metrics | 5 built-in Micrometer metrics | Manual |
-| Tracing | OpenTelemetry built-in | Sleuth |
+| Exception hierarchy | 11 typed exceptions with category | FeignException only |
+| Configuration priority | Documented, enforced | Ad-hoc |
+| Per-client config | `spider.clients.<name>.*` | Per-@FeignClient properties |
+| Metrics | `spider.client.*` with error_type tag | Manual |
+| Tracing | OpenTelemetry built-in, query-safe | Sleuth/Micrometer Tracing |
 | gRPC | Supported | No |
+| Filter chain | Pluggable, reorderable filters | InvocationHandlerFactory |
 | Spring dependency | Zero (core) | Required |
 | Java | 8+ | 8+ |
-| Performance | 22,877 QPS (+15%) | ~18,000 QPS (+45%) |
 
 ## Design Principles
 
 - Interface declaration separated from execution logic
 - Governance policies separated from transport protocol
+- Every component is replaceable via SPI
 - Core modules do not depend on Spring
-- Never reinvent low-level wheels — OkHttp, Jackson, Micrometer, Resilience4j
+- Never reinvent low-level wheels — OkHttp, Jackson, Micrometer, Resilience4j, OpenTelemetry
+
+## Docs
+
+- [Quick Start](docs/quickstart.md)
+- [Configuration Reference](docs/configuration.md)
+- [Error Handling](docs/error-handling.md)
+- [SPI Extension Guide](docs/spi.md)
+- [Improvement Plan](docs/main.md)
 
 ## License
 
