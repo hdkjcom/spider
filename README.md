@@ -274,9 +274,7 @@ Requires JDK 8+, Maven 3.6+.
 | Filter chain pipeline + service discovery + load balancing | ✅ Done |
 | Configuration priority + typed exception hierarchy | ✅ Done |
 | Per-client config + actuator/health + Spring Boot 3.x compat | ✅ Done |
-| Standardized metrics + tracing + documentation | ✅ Done |
-
-See [docs/main.md](docs/main.md) for the full improvement plan.
+| Standardized metrics + tracing + docs | ✅ Done |
 
 ## vs OpenFeign
 
@@ -313,7 +311,6 @@ See [docs/main.md](docs/main.md) for the full improvement plan.
 - [Configuration Reference](docs/configuration.md)
 - [Error Handling](docs/error-handling.md)
 - [SPI Extension Guide](docs/spi.md)
-- [Improvement Plan](docs/main.md)
 
 ## License
 
