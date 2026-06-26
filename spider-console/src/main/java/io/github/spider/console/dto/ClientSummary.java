@@ -9,6 +9,7 @@ public class ClientSummary {
     private String service;
     /** 客户端名称 */
     private String client;
+    private String method;
     /** 累计调用次数 */
     private long calls;
     /** 累计成功次数 */
@@ -36,6 +37,8 @@ public class ClientSummary {
     public void setService(String service) { this.service = service; }
     public String getClient() { return client; }
     public void setClient(String client) { this.client = client; }
+    public String getMethod() { return method; }
+    public void setMethod(String method) { this.method = method; }
     public long getCalls() { return calls; }
     public void setCalls(long calls) { this.calls = calls; }
     public long getSuccess() { return success; }

@@ -41,8 +41,11 @@ public class ReportController {
 
         for (MetricDto m : metrics) {
             String client = m.getClient() != null ? m.getClient() : service;
+            String method = m.getMethod() != null && !m.getMethod().trim().isEmpty() ? m.getMethod() : "*";
             Map<String, Object> metricMap = new LinkedHashMap<>();
+            metricMap.put("service", service);
             metricMap.put("client", client);
+            metricMap.put("method", method);
             metricMap.put("calls", m.getCalls());
             metricMap.put("success", m.getSuccess());
             metricMap.put("failure", m.getFailure());
@@ -52,8 +55,12 @@ public class ReportController {
             metricMap.put("p50", m.getP50());
             metricMap.put("p90", m.getP90());
             metricMap.put("p99", m.getP99());
-            serviceStore.put(client, metricMap);
-            recentReports.add(metricMap);
+            long calls = m.getCalls();
+            metricMap.put("successRate", calls > 0 ? String.format("%.1f", 100.0 * m.getSuccess() / calls) : "N/A");
+            metricMap.put("avgLatencyMs", calls > 0 ? String.format("%.1f", (double) m.getTotalLatencyMs() / calls) : "0");
+            metricMap.put("reportTime", new Date());
+            serviceStore.put(client + "#" + method, metricMap);
+            recentReports.add(new LinkedHashMap<>(metricMap));
             synchronized (recentReports) {
                 while (recentReports.size() > 1000) recentReports.remove(0);
             }
@@ -86,7 +93,8 @@ public class ReportController {
                 Map<String, Object> v = ce.getValue();
                 ClientSummary cs = new ClientSummary();
                 cs.setService(se.getKey());
-                cs.setClient(ce.getKey());
+                cs.setClient(String.valueOf(v.get("client")));
+                cs.setMethod(String.valueOf(v.get("method")));
                 cs.setCalls(toLong(v.get("calls")));
                 cs.setSuccess(toLong(v.get("success")));
                 cs.setFailure(toLong(v.get("failure")));
@@ -107,6 +115,12 @@ public class ReportController {
 
         dto.setCircuitBreakers(new LinkedHashMap<>(circuitBreakers));
         dto.setSnapshotCount(recentReports.size());
+        synchronized (recentReports) {
+            int from = Math.max(0, recentReports.size() - 50);
+            List<Map<String, Object>> recent = new ArrayList<>(recentReports.subList(from, recentReports.size()));
+            Collections.reverse(recent);
+            dto.setRecentReports(recent);
+        }
         dto.setTracingEnabled(tracingEnabled);
         dto.setTime(new Date());
         return dto;

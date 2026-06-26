@@ -1,224 +1,144 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spider Console</title>
-<style>
-:root{--bg:#f0f2f5;--card:#fff;--text:#1d1d1f;--muted:#8e8e93;--border:#e5e5ea;--blue:#007aff;--green:#34c759;--red:#ff3b30;--orange:#ff9500;--nav:#1c1c1e}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font:13px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh}
-/* Sidebar */
-.sidebar{width:200px;background:var(--nav);flex-shrink:0;padding:0;position:fixed;top:0;bottom:0;overflow-y:auto}
-.sidebar .brand{padding:18px 20px;font-size:15px;font-weight:600;color:#fff;display:flex;align-items:baseline;gap:6px}
-.sidebar .brand .v{font-size:11px;color:#999;font-weight:400}
-.sidebar .sec{color:#666;font-size:10px;padding:20px 20px 6px;text-transform:uppercase;letter-spacing:1px}
-.sidebar a{display:flex;align-items:center;gap:8px;padding:7px 20px;color:#a1a1a6;text-decoration:none;font-size:13px;transition:all .1s;border-left:3px solid transparent}
-.sidebar a:hover{color:#fff;background:rgba(255,255,255,.05)}
-.sidebar a.on{color:#fff;background:rgba(0,122,255,.15);border-left-color:var(--blue)}
-/* Main */
-.main{flex:1;margin-left:200px;min-width:0}
-.top{background:var(--card);padding:0 24px;height:48px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-.top h2{font-size:15px;font-weight:600;color:var(--text)}
-.top .info{font-size:12px;color:var(--muted);display:flex;gap:16px}
-.top .info span{display:flex;align-items:center;gap:4px}
-.top .info .dot{width:7px;height:7px;border-radius:50%}
-.top .info .dot.live{background:var(--green)}
-.body{padding:20px 24px}
-/* Cards */
-.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px}
-.stats .sc{background:var(--card);border-radius:4px;padding:16px 20px;border:1px solid var(--border)}
-.stats .sc .scl{font-size:12px;color:var(--muted);margin-bottom:6px}
-.stats .sc .scv{font-size:22px;font-weight:600}
-.stats .sc .scv.g{color:var(--green)}.stats .sc .scv.r{color:var(--red)}.stats .sc .scv.b{color:var(--blue)}
-/* Panels */
-.sec-title{font-size:13px;font-weight:600;padding:0 0 12px 0;display:flex;justify-content:space-between;align-items:center}
-.sec-title .count{font-weight:400;color:var(--muted);font-size:12px}
-.panel{background:var(--card);border-radius:4px;border:1px solid var(--border);margin-bottom:16px;padding:16px 20px}
-/* Tables */
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;padding:9px 12px;color:var(--muted);font-weight:500;background:#fafafa;border-bottom:2px solid var(--border);font-size:11px}
-td{padding:9px 12px;border-bottom:1px solid #f5f5f5}
-tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
-.n{text-align:right;font-variant-numeric:tabular-nums}
-/* bar + percent */
-.pbar{display:flex;align-items:center;gap:8px}
-.pbar .track{width:60px;height:4px;background:#f0f0f5;border-radius:2px;overflow:hidden}
-.pbar .fill{height:100%;border-radius:2px;transition:width .3s}
-.pbar .fill.g{background:var(--green)}.pbar .fill.r{background:var(--red)}.pbar .fill.o{background:var(--orange)}
-/* Tags */
-.tag{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border-radius:3px;font-size:11px;font-weight:500}
-.tag.closed{background:#e8f8ed;color:var(--green)}.tag.open{background:#ffe5e5;color:var(--red)}.tag.half{background:#fff3e0;color:var(--orange)}
-.tag .td{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.tag .td.g{background:var(--green)}.tag .td.r{background:var(--red)}.tag .td.o{background:var(--orange)}
-/* Empty state */
-.nodata{padding:40px;text-align:center;color:var(--muted);font-size:13px}
-.nodata code{background:#f0f0f5;padding:1px 6px;border-radius:3px;font-size:12px}
-/* footer */
-.ft{padding:0 24px 20px;text-align:center;color:#ccc;font-size:11px}
-</style>
+<link rel="stylesheet" href="/spider-console.css">
 </head>
 <body>
-<div class="sidebar">
-  <div class="brand">Spider<span class="v">v0.1</span></div>
-  <div class="sec">监控</div>
-  <a href="#" class="on" data-v="overview">概览</a>
-  <a href="#" data-v="clients">客户端监控</a>
-  <a href="#" data-v="breakers">熔断器</a>
-  <a href="#" data-v="tracing">链路追踪</a>
-  <div class="sec">管理</div>
-  <a href="#" data-v="services">注册服务</a>
-  <div class="sec">其他</div>
-  <a href="#" data-v="about">关于</a>
-</div>
-<div class="main">
-  <div class="top">
-    <h2 id="vtitle">概览</h2>
-    <div class="info">
-      <span><span class="dot live"></span>运行中</span>
-      <span>数据点 <strong id="sc">0</strong></span>
-      <span>服务 <strong id="svc">0</strong></span>
-      <span id="lu">-</span>
-    </div>
-  </div>
-  <div class="body">
-    <div class="stats" id="cards"></div>
-    <div id="view-overview">
-      <div class="sec-title"><span>客户端概览</span><span class="count" id="ctotal">-</span></div>
-      <div class="panel" id="clients-table"></div>
-    </div>
-    <div id="view-clients" style="display:none"></div>
-    <div id="view-breakers" style="display:none"></div>
-    <div id="view-tracing" style="display:none">
-      <div class="sec-title"><span>链路追踪</span></div>
-      <div class="panel" id="tracing-panel"></div>
-    </div>
-    <div id="view-services" style="display:none">
-      <div class="sec-title"><span>已注册服务</span><span class="count" id="stotal">-</span></div>
-      <div class="panel" id="services-table"></div>
-    </div>
-    <div id="view-about" style="display:none">
-      <div class="panel" style="max-width:640px">
-        <div style="font-size:18px;font-weight:600;margin-bottom:12px">Spider Console v0.1</div>
-        <div style="color:var(--muted);line-height:2;margin-bottom:16px">
-          面向 Java 微服务的声明式服务调用治理中间件。<br>
-          内置重试、熔断、限流、降级、指标、追踪、契约校验。<br>
-          核心模块零依赖 Spring，一个 Starter 包含全部能力。
-        </div>
-        <div style="margin-bottom:8px">
-          <a href="https://gitee.com/suxuZZR/spider" target="_blank" style="color:var(--blue);text-decoration:none">
-            Gitee: gitee.com/suxuZZR/spider
-          </a>
-        </div>
-        <div style="margin-bottom:8px">
-          <a href="https://github.com/hdkjcom/spider" target="_blank" style="color:var(--blue);text-decoration:none">
-            GitHub: github.com/hdkjcom/spider
-          </a>
-        </div>
-        <div style="color:var(--muted);font-size:12px;margin-top:16px">
-          当前版本: 0.1.0 &nbsp;|&nbsp; Java 8+ &nbsp;|&nbsp; Apache 2.0
-        </div>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      <div>
+        <div class="brand-main">Spider Console</div>
+        <div class="brand-sub">0.1.4</div>
       </div>
     </div>
-  </div>
-  <div class="ft">Spider Console 0.1.0</div>
+    <div class="nav-section" data-i18n="section.monitor">监控</div>
+    <button class="nav-button active" data-view="overview"><span data-i18n="nav.overview">概览</span> <span class="nav-kpi" id="navTotal">0</span></button>
+    <button class="nav-button" data-view="clients"><span data-i18n="nav.clients">客户端</span> <span class="nav-kpi" id="navClients">0</span></button>
+    <button class="nav-button" data-view="reports"><span data-i18n="nav.reports">最近上报</span> <span class="nav-kpi" id="navReports">0</span></button>
+    <button class="nav-button" data-view="breakers"><span data-i18n="nav.breakers">熔断器</span> <span class="nav-kpi" id="navBreakers">0</span></button>
+    <button class="nav-button" data-view="tracing"><span data-i18n="nav.tracing">链路追踪</span> <span class="nav-kpi" id="navTracing">-</span></button>
+    <div class="nav-section" data-i18n="section.resources">资源</div>
+    <button class="nav-button" data-view="services"><span data-i18n="nav.services">服务</span> <span class="nav-kpi" id="navServices">0</span></button>
+  </aside>
+
+  <main class="content">
+    <header class="topbar">
+      <div class="title">
+        <h1 id="pageTitle">概览</h1>
+        <p id="pageSubtitle">调用、错误、延迟和治理状态</p>
+      </div>
+      <div class="top-actions">
+        <select class="field mobile-nav" id="mobileView">
+          <option value="overview" data-i18n="nav.overview">概览</option>
+          <option value="clients" data-i18n="nav.clients">客户端</option>
+          <option value="reports" data-i18n="nav.reports">最近上报</option>
+          <option value="breakers" data-i18n="nav.breakers">熔断器</option>
+          <option value="tracing" data-i18n="nav.tracing">链路追踪</option>
+          <option value="services" data-i18n="nav.services">服务</option>
+        </select>
+        <div class="status"><span class="dot" id="healthDot"></span><span id="healthText">连接中</span></div>
+        <div class="status"><span data-i18n="label.refresh">刷新</span> <strong id="lastRefresh">-</strong></div>
+        <button class="btn" id="langToggle" type="button">English</button>
+        <button class="btn" id="refreshBtn" type="button" data-i18n="action.refresh">刷新</button>
+      </div>
+    </header>
+
+    <section class="page">
+      <div class="summary" id="summary"></div>
+
+      <div class="toolbar">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-view="overview" type="button" data-i18n="nav.overview">概览</button>
+          <button class="tab" data-view="clients" type="button" data-i18n="nav.clients">客户端</button>
+          <button class="tab" data-view="reports" type="button" data-i18n="nav.reports">最近上报</button>
+          <button class="tab" data-view="breakers" type="button" data-i18n="nav.breakers">熔断器</button>
+          <button class="tab" data-view="services" type="button" data-i18n="nav.services">服务</button>
+        </div>
+        <div class="filters">
+          <select class="field" id="serviceFilter">
+            <option value="" data-i18n="filter.allServices">全部服务</option>
+          </select>
+          <input class="field" id="searchBox" placeholder="搜索客户端、服务或方法" data-i18n-placeholder="filter.search" autocomplete="off">
+        </div>
+      </div>
+
+      <div id="view-overview">
+        <div class="grid-2">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <div class="panel-title" data-i18n="panel.clientHealth">客户端健康度</div>
+                <div class="panel-note" id="clientNote">-</div>
+              </div>
+            </div>
+            <div class="table-wrap" id="overviewTable"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <div class="panel-title" data-i18n="panel.governance">治理状态</div>
+                <div class="panel-note" data-i18n="panel.governanceNote">熔断、追踪与上报状态</div>
+              </div>
+            </div>
+            <div class="state-grid" id="governancePanel"></div>
+          </section>
+        </div>
+        <section class="panel mt-14">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title" data-i18n="panel.recentReports">最近上报</div>
+              <div class="panel-note" data-i18n="panel.recentReportsNote">最新 8 条指标快照</div>
+            </div>
+          </div>
+          <div class="table-wrap" id="recentOverviewTable"></div>
+        </section>
+      </div>
+
+      <div id="view-clients" hidden>
+        <section class="panel">
+          <div class="panel-head"><div><div class="panel-title" data-i18n="panel.clientDetails">客户端明细</div><div class="panel-note" id="clientDetailNote">-</div></div></div>
+          <div class="table-wrap" id="clientTable"></div>
+        </section>
+      </div>
+
+      <div id="view-reports" hidden>
+        <section class="panel">
+          <div class="panel-head"><div><div class="panel-title" data-i18n="panel.recentReports">最近上报</div><div class="panel-note" id="reportNote">-</div></div></div>
+          <div class="table-wrap" id="reportTable"></div>
+        </section>
+      </div>
+
+      <div id="view-breakers" hidden>
+        <section class="panel">
+          <div class="panel-head"><div><div class="panel-title" data-i18n="panel.breakers">熔断器状态</div><div class="panel-note" id="breakerNote">-</div></div></div>
+          <div id="breakerPanel"></div>
+        </section>
+      </div>
+
+      <div id="view-tracing" hidden>
+        <section class="panel">
+          <div class="panel-head"><div><div class="panel-title" data-i18n="panel.tracing">链路追踪</div><div class="panel-note" data-i18n="panel.tracingNote">W3C trace-context 注入状态</div></div></div>
+          <div class="state-grid" id="tracingPanel"></div>
+        </section>
+      </div>
+
+      <div id="view-services" hidden>
+        <section class="panel">
+          <div class="panel-head"><div><div class="panel-title" data-i18n="panel.services">已上报服务</div><div class="panel-note" id="serviceNote">-</div></div></div>
+          <div class="table-wrap" id="serviceTable"></div>
+        </section>
+      </div>
+    </section>
+
+    <footer class="footer">Spider Console 0.1.4 · Java 8+ · Apache 2.0</footer>
+  </main>
 </div>
-<script>
-let D={},timer;
-
-async function load(){try{const r=await fetch('/spider/api/dashboard');D=await r.json();render()}catch(e){}}
-
-function render(){
-  document.getElementById('sc').textContent=D.snapshotCount||0;
-  document.getElementById('svc').textContent=(D.services||[]).length;
-  document.getElementById('lu').textContent=new Date().toLocaleTimeString();
-  const clients=D.clients||{}, breakers=D.circuitBreakers||{}, services=D.services||[];
-  let calls=0,success=0,failure=0,retries=0,fallbacks=0,latency=0;
-  for(let[k,v]of Object.entries(clients)){calls+=v.calls||0;success+=v.success||0;failure+=v.failure||0;retries+=v.retries||0;fallbacks+=v.fallbacks||0;latency+=v.totalLatencyMs||0}
-  const rate=calls>0?(100*success/calls).toFixed(1)+'%':'N/A';
-  document.getElementById('cards').innerHTML=
-    `<div class=sc><div class=scl>总调用次数</div><div class=scv>${calls.toLocaleString()}</div></div>
-     <div class=sc><div class=scl>总成功</div><div class="scv g">${success.toLocaleString()}</div></div>
-     <div class=sc><div class=scl>总失败</div><div class="scv r">${failure.toLocaleString()}</div></div>
-     <div class=sc><div class=scl>总重试</div><div class="scv b">${retries.toLocaleString()}</div></div>
-     <div class=sc><div class=scl>总降级</div><div class=scv>${fallbacks.toLocaleString()}</div></div>
-     <div class=sc><div class=scl>成功率</div><div class="scv ${parseFloat(rate)>99?'g':parseFloat(rate)>95?'b':'r'}">${rate}</div></div>`;
-
-  renderClientTable(clients);
-  renderBreakersTable(breakers);
-  renderTracing();
-  renderServicesTable(services);
-}
-
-function renderClientTable(clients){
-  const entries=Object.entries(clients);
-  document.getElementById('ctotal').textContent='共 '+entries.length+' 个客户端';
-  if(!entries.length){document.getElementById('clients-table').innerHTML='<div class=nodata>暂无数据，等待客户端上报...<br><code>SpiderReporter.start("http://localhost:18080","your-service")</code></div>';return}
-  let rows='';
-  for(let[k,v]of entries){
-    const rate=v.successRate||'N/A';
-    rows+=`<tr>
-      <td><strong>${esc(k)}</strong></td>
-      <td class=n>${(v.calls||0).toLocaleString()}</td>
-      <td class="n g">${(v.success||0).toLocaleString()}</td>
-      <td class="n r">${(v.failure||0).toLocaleString()}</td>
-      <td class=n>${(v.retries||0).toLocaleString()}</td>
-      <td class=n>${(v.fallbacks||0).toLocaleString()}</td>
-      <td class=n>${v.avgLatencyMs||'0'} ms</td>
-      <td class=n>p50:${v.p50||0} p90:${v.p90||0} p99:${v.p99||0}ms</td>
-      <td><div class=pbar><div class=track><div class="fill ${parseFloat(rate)>99?'g':parseFloat(rate)>95?'o':'r'}" style="width:${parseFloat(rate)||100}%"></div></div><span>${rate}%</span></div></td>
-    </tr>`;
-  }
-  document.getElementById('clients-table').innerHTML='<table><thead><tr><th>客户端</th><th class=n>调用</th><th class=n>成功</th><th class=n>失败</th><th class=n>重试</th><th class=n>降级</th><th class=n>平均延迟</th><th class=n>延迟分布</th><th>成功率</th></tr></thead><tbody>'+rows+'</tbody></table>';
-}
-
-function renderBreakersTable(breakers){
-  const entries=Object.entries(breakers);
-  const div=document.getElementById('view-breakers');
-  if(!entries.length){div.innerHTML='<div class=nodata>暂无熔断器。在 @SpiderClient 上添加 @SpiderCircuitBreaker 注解即可启用。</div>';return}
-  let cards='';
-  for(let[k,v]of entries){
-    let cls,label,color;
-    if(v==='CLOSED'){cls='closed';label='已关闭';color='g'}
-    else if(v==='OPEN'){cls='open';label='已熔断';color='r'}
-    else{cls='half';label='半开';color='o'}
-    cards+=`<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;margin:0 8px 8px 0;background:var(--card);border:1px solid var(--border);border-radius:4px">
-      <span class="tag ${cls}"><span class="td ${color}"></span>${label}</span>
-      <strong>${esc(k)}</strong>
-    </div>`;
-  }
-  div.innerHTML=`<div class=sec-title><span>熔断器状态</span><span class=count>共 ${entries.length} 个</span></div><div style="padding:8px 0">${cards}</div>`;
-}
-
-function renderTracing(){
-  const enabled=D.tracingEnabled||false;
-  const div=document.getElementById("tracing-panel");
-  if(enabled){div.innerHTML="<div style=display:flex;align-items:center;gap:12px;padding:8px 0><span style=width:8px;height:8px;background:var(--green);border-radius:50%></span><span>链路追踪已启用</span><span style=color:var(--muted);font-size:12px>W3C trace-context 自动注入</span></div><div style=color:var(--muted);font-size:12px>部署 Jaeger 或 Zipkin 后端查看完整调用链。Spider 每次远程调用自动创建 CLIENT span 并注入 traceparent header。</div>"}
-  else{div.innerHTML="<div style=display:flex;align-items:center;gap:12px;padding:8px 0><span style=width:8px;height:8px;background:var(--red);border-radius:50%></span><span>链路追踪未启用</span><span style=color:var(--muted);font-size:12px>引入 spider-telemetry 并配置 OpenTelemetry SDK 即可启用</span></div><div style=color:var(--muted);font-size:12px>添加依赖后，Spider 自动注入 TracingInterceptor，每次调用注入 W3C trace-context header。</div>"}
-}
-function renderServicesTable(services){
-  document.getElementById('stotal').textContent='共 '+(services||[]).length+' 个';
-  if(!services||!services.length){document.getElementById('services-table').innerHTML='<div class=nodata>暂无服务注册</div>';return}
-  document.getElementById('services-table').innerHTML='<table><thead><tr><th>服务名</th></tr></thead><tbody>'+services.map(s=>`<tr><td><strong>${esc(s)}</strong></td></tr>`).join('')+'</tbody></table>';
-}
-
-// Navigation
-document.querySelectorAll('.sidebar a').forEach(a=>{a.onclick=function(e){
-  e.preventDefault();
-  document.querySelectorAll('.sidebar a').forEach(x=>x.classList.remove('on'));
-  this.classList.add('on');
-  const v=this.dataset.v;
-  document.getElementById('vtitle').textContent=this.textContent.trim();
-  document.getElementById('view-overview').style.display=v==='overview'?'':'none';
-  document.getElementById('view-clients').style.display=v==='clients'?'':'none';
-  document.getElementById('view-breakers').style.display=v==='breakers'?'':'none';
-  document.getElementById('view-tracing').style.display=v==='tracing'?'':'none';
-  document.getElementById('view-services').style.display=v==='services'?'':'none';
-  document.getElementById('view-about').style.display=v==='about'?'':'none';
-}});
-
-function esc(s){return(s||'').replace(/</g,'&lt;')}
-
-load();setInterval(load,5000);
-</script>
+<script src="/spider-console.js"></script>
 </body>
 </html>
+

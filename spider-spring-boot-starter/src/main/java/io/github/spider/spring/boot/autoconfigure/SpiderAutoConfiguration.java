@@ -16,7 +16,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -99,10 +101,28 @@ public class SpiderAutoConfiguration {
     @ConditionalOnMissingBean
     public SpiderClientFactory spiderClientFactory(
             SpiderTransport transport, SpiderDecoder decoder, SpiderEncoder encoder,
-            List<SpiderInterceptor> interceptors, SpiderMetrics metrics) {
+            List<SpiderInterceptor> interceptors, SpiderMetrics metrics,
+            SpiderProperties props) {
+        // 将 SpiderProperties.ClientConfig 转换为通用 Map 格式（保持 core 无 Spring 依赖）
+        Map<String, Map<String, Object>> clientConfigs = new HashMap<>();
+        if (props.getClients() != null) {
+            for (Map.Entry<String, SpiderProperties.ClientConfig> entry : props.getClients().entrySet()) {
+                Map<String, Object> cfg = new HashMap<>();
+                SpiderProperties.ClientConfig cc = entry.getValue();
+                if (cc.getUrl() != null) cfg.put("url", cc.getUrl());
+                if (cc.getTimeout() != null) cfg.put("timeout", cc.getTimeout());
+                cfg.put("retry.maxAttempts", cc.getRetry().getMaxAttempts());
+                cfg.put("retry.backoffMillis", cc.getRetry().getBackoffMillis());
+                clientConfigs.put(entry.getKey(), cfg);
+            }
+        }
         return SpiderClientFactory.builder()
                 .transport(transport).decoder(decoder).encoder(encoder)
                 .interceptors(interceptors).metrics(metrics)
+                .defaultTimeout(props.getDefaultTimeout())
+                .defaultRetry(props.getDefaultRetry().getMaxAttempts(),
+                        props.getDefaultRetry().getBackoffMillis())
+                .clientConfigs(clientConfigs)
                 .build();
     }
 }

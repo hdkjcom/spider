@@ -1,7 +1,7 @@
 package io.github.spider.resilience;
 
 import io.github.spider.core.annotation.RateLimit;
-import io.github.spider.core.client.SpiderClientException;
+import io.github.spider.core.exception.SpiderRateLimitException;
 import io.github.spider.core.transport.SpiderRequest;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +22,7 @@ class RateLimiterInterceptorTest {
         interceptor.beforeRequest(new SpiderRequest().method("GET").url("http://localhost"));
 
         // 3rd call should throw
-        assertThrows(SpiderClientException.class, () ->
+        assertThrows(SpiderRateLimitException.class, () ->
                 interceptor.beforeRequest(new SpiderRequest().method("GET").url("http://localhost")));
     }
 

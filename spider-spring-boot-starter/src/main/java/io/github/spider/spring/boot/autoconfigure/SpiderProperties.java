@@ -2,6 +2,9 @@ package io.github.spider.spring.boot.autoconfigure;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Spider 配置属性，对应 {@code spider.*} 前缀。
  *
@@ -14,6 +17,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *   transport:
  *     connect-timeout: 10s
  *     read-timeout: 30s
+ *   clients:
+ *     user-service:
+ *       url: http://user:8081
+ *       timeout: 2000
+ *       retry:
+ *         max-attempts: 5
  * </pre>
  */
 @ConfigurationProperties(prefix = "spider")
@@ -27,6 +36,9 @@ public class SpiderProperties {
 
     /** 传输层配置。 */
     private TransportConfig transport = new TransportConfig();
+
+    /** 每个客户端的独立配置，key 为 @SpiderClient.name()。 */
+    private Map<String, ClientConfig> clients = new HashMap<>();
 
     /** 获取默认超时时间（毫秒）。 */
     public int getDefaultTimeout() { return defaultTimeout; }
@@ -42,6 +54,11 @@ public class SpiderProperties {
     public TransportConfig getTransport() { return transport; }
     /** 设置传输层配置。 */
     public void setTransport(TransportConfig transport) { this.transport = transport; }
+
+    /** 获取每个客户端的独立配置。 */
+    public Map<String, ClientConfig> getClients() { return clients; }
+    /** 设置每个客户端的独立配置。 */
+    public void setClients(Map<String, ClientConfig> clients) { this.clients = clients; }
 
     /**
      * 重试策略配置。
@@ -85,5 +102,25 @@ public class SpiderProperties {
         public long getWriteTimeout() { return writeTimeout; }
         /** 设置写超时（毫秒）。 */
         public void setWriteTimeout(long writeTimeout) { this.writeTimeout = writeTimeout; }
+    }
+
+    /**
+     * 单个客户端的独立配置，key 为 {@code @SpiderClient.name()}。
+     * 所有字段均为可选——未设置的字段不覆盖注解默认值。
+     */
+    public static class ClientConfig {
+        /** 覆盖 {@code @SpiderClient.url()}。 */
+        private String url;
+        /** 覆盖客户端级超时（毫秒）。 */
+        private Integer timeout;
+        /** 覆盖客户端重试配置。 */
+        private RetryConfig retry = new RetryConfig();
+
+        public String getUrl() { return url; }
+        public void setUrl(String url) { this.url = url; }
+        public Integer getTimeout() { return timeout; }
+        public void setTimeout(Integer timeout) { this.timeout = timeout; }
+        public RetryConfig getRetry() { return retry; }
+        public void setRetry(RetryConfig retry) { this.retry = retry; }
     }
 }

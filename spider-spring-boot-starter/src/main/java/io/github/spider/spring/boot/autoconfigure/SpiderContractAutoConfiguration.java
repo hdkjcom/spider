@@ -4,6 +4,7 @@ import io.github.spider.contract.ContractInterceptor;
 import io.github.spider.core.interceptor.SpiderInterceptor;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -22,6 +23,7 @@ public class SpiderContractAutoConfiguration {
      * @return ContractInterceptor 实例
      */
     @Bean
+    @ConditionalOnMissingBean
     public SpiderInterceptor contractInterceptor() {
         return new ContractInterceptor(null);
     }
