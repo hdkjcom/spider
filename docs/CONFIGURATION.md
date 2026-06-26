@@ -82,6 +82,15 @@ spider:
     connect-timeout: 10000                # OkHttp 连接超时（毫秒）
     read-timeout: 30000                   # OkHttp 读取超时（毫秒）
     write-timeout: 30000                  # OkHttp 写入超时（毫秒）
+  console:
+    url: http://localhost:18080           # 控制台上报地址
+    service-name: my-service              # 本服务名称
+  clients:                                # 每客户端独立配置
+    user-service:
+      url: http://user:8081               # 覆盖 URL
+      timeout: 2000                       # 覆盖超时
+      retry:
+        max-attempts: 5                   # 覆盖重试次数
 ```
 
 ## Builder 选项（编程方式）

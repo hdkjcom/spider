@@ -10,21 +10,26 @@ Spider = **声明式远程调用** + **弹性治理** + **契约保护** + **可
 
 - 通过 Java 注解定义远程服务调用（`@SpiderGet`、`@SpiderPost`、`@SpiderPut`、`@SpiderDelete`）
 - JDK 动态代理，无需 ByteBuddy/CGLIB，仅支持接口
+- **过滤器链管道** — 可插拔的调用过滤器：请求构建、服务发现、重试、传输、解码、指标、降级
 - 可插拔传输层：OkHttp (HTTP)、gRPC，通过 SPI 扩展
-- JSON 编解码，基于 Jackson，支持泛型
-- 重试：GET 幂等自动重试，可配置次数、指数退避、忽略特定状态码
+- JSON 编解码，基于 Jackson，支持泛型，字符串响应自动识别 JSON/纯文本
+- 重试：可配置次数、指数退避、智能跳过（4xx/配置错误/熔断拒绝永不重试）
 - 熔断：内置计数熔断器 + Resilience4j 集成
 - 限流：注解驱动，Resilience4j 实现
 - 降级：接口级优雅降级，FallbackFactory 可获取异常信息
 - 拦截器：before/after/onError 三个钩子
-- 超时：方法级和客户端级
-- 指标：Micrometer 集成（成功、失败、重试、降级、耗时）
-- 链路追踪：OpenTelemetry W3C trace-context 自动注入
-- 服务发现：SPI，内置内存版和 Nacos 实现
+- 超时：每请求超时由传输层实际执行
+- **服务发现**：SPI，内置内存版和 Nacos 实现
+- **负载均衡**：默认轮询，可选随机，SPI 可扩展
+- **类型化异常体系**：11 种异常类型，带 `ErrorCategory`，精确控制重试和指标
+- **配置优先级**：方法注解 > 接口注解 > Spring 属性 > Builder > 框架默认值
+- **每客户端独立配置**：`spider.clients.<name>.*` in `application.yml`
+- 指标：Micrometer 集成，带 `error_type` 标签（`spider.client.requests`、`retries`、`fallbacks`、`duration`）
+- 链路追踪：OpenTelemetry W3C trace-context 自动注入，URL 自动去除敏感参数
 - 契约校验：响应校验拦截器
 - Spring Boot starter：`@EnableSpiderClients`，自动扫描，`application.yml` 配置
-- 独立控制台：监控所有 Spider 服务的 Dashboard（Nacos 风格）
-- 自动上报：通过 `spider.console.url` 配置自动向控制台上报指标
+- 独立控制台：`/spider` 监控 Dashboard，方法级客户端汇总
+- Actuator 端点：`/actuator/spider`、`/actuator/spider/clients/{name}`，健康检查含每客户端指标
 - 核心模块零依赖 Spring，兼容 Java 8
 
 ## 快速开始
@@ -74,6 +79,28 @@ UserClient client = factory.create(UserClient.class);
 UserDTO user = client.getUser(1L);  // GET http://localhost:8081/users/1
 ```
 
+### 服务发现与负载均衡
+
+配置 `SpiderServiceDiscovery` 后，`@SpiderClient` 可以省略 `url`。Spider 会按 `name` 解析服务实例，并默认使用 round-robin 负载均衡。
+
+```java
+@SpiderClient(name = "user-service")
+public interface UserClient {
+    @SpiderGet("/users/{id}")
+    UserDTO getUser(@Path("id") Long id);
+}
+
+SpiderClientFactory factory = SpiderClientFactory.builder()
+        .transport(new OkHttpSpiderTransport())
+        .decoder(new JacksonSpiderDecoder())
+        .encoder(new JacksonSpiderEncoder())
+        .serviceDiscovery(new SimpleServiceDiscovery()
+                .register("user-service",
+                        "http://localhost:8081",
+                        "http://localhost:8082"))
+        .build();
+```
+
 ### Spring Boot
 
 ```java
@@ -114,17 +141,20 @@ public interface PayClient {
 
 ### 可观测性
 
-| 指标（Micrometer） | 类型 |
-|---|---|
-| `spider.requests.success` | Counter |
-| `spider.requests.failure` | Counter |
-| `spider.requests.retry` | Counter |
-| `spider.requests.fallback` | Counter |
-| `spider.requests.duration` | Timer |
+| 指标（Micrometer） | 类型 | 标签 |
+|---|---|---|
+| `spider.client.requests` | Counter | client, method, outcome (success/failure), error_type |
+| `spider.client.retries` | Counter | client, method, error_type |
+| `spider.client.fallbacks` | Counter | client, method |
+| `spider.client.duration` | Timer | client, method |
 
-标签：`client`（服务名），`method`（方法名）。
+标签：`client`（服务名），`method`（方法名），`error_type`（异常类型）。
 
-链路追踪：`TracingInterceptor` 自动注入 W3C trace-context（需 `spider-telemetry` 在 classpath 上）。
+链路追踪：`TracingInterceptor` 自动注入 W3C trace-context，span 错误记录 `exception.type`，URL 自动去除 query 参数。
+
+### 错误处理
+
+11 种类型化异常，继承自 `SpiderException`，每种带有 `ErrorCategory`。详见 [错误处理](docs/error-handling.md)。
 
 控制台：引入 starter 后，直接在业务端口访问 Dashboard，无需额外部署：
 
@@ -132,19 +162,30 @@ public interface PayClient {
 http://localhost:8086/spider
 ```
 
-多服务统一监控时可单独部署控制台。
+多服务统一监控时可单独部署控制台：
+
+```bash
+mvn exec:java -pl spider-console -Dexec.mainClass=io.github.spider.console.SpiderConsoleApplication
+```
+
+```properties
+spider.console.url=http://localhost:18080
+spider.console.service-name=my-service
+```
 
 控制台是可选的——不配 `spider.console.url` 不影响 Spider 的正常使用，只是没有监控页面。
 
 ## 架构
 
 ```
-@SpiderClient 接口 → JDK 动态代理 → SpiderInvocationHandler
-  → MethodMetadata → RequestTemplate → SpiderRequest
-  → 管道（拦截器 → 限流 → 熔断 → 重试 → 超时 → 传输 → 解码 → 降级）
-  → SpiderTransport (HTTP / gRPC) → 远程服务
-  → SpiderResponse → 解码 → 返回
+@SpiderClient 接口 -> JDK 动态代理 -> SpiderInvocationHandler
+  -> SpiderInvocationContext -> SpiderFilterChain
+  -> 过滤器链: ResponseContext -> ServiceDiscovery -> RequestBuild ->
+     Interceptor -> Fallback -> Retry -> Transport -> Decode -> Metrics
+  -> SpiderTransport (HTTP / gRPC) -> 远程服务
 ```
+
+调用管道是一个可插拔的过滤器链。每个治理关注点（重试、熔断、限流、指标、追踪、降级）都是一个独立、可测试的过滤器，可以重新排序或替换。
 
 ### 模块一览
 
@@ -163,6 +204,7 @@ http://localhost:8086/spider
 | `spider-telemetry` | OpenTelemetry 追踪 |
 | `spider-config` | 动态配置 SPI |
 | `spider-messaging` | 消息队列传输 SPI |
+| `spider-benchmark` | JMH 基准测试 |
 | `spider-spring-boot-starter` | 全功能 Spring Boot starter |
 | `spider-demo` | 自包含演示 |
 
@@ -172,7 +214,7 @@ http://localhost:8086/spider
 mvn compile
 mvn test
 mvn package -DskipTests
-mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.hdkjcom.spider.demo.SpiderDemo
+mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.spider.demo.SpiderDemo
 ```
 
 要求 JDK 8+，Maven 3.6+。
@@ -181,35 +223,51 @@ mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.hdkjcom.spider.demo.Spi
 
 | 阶段 | 状态 |
 |---|---|
-| 声明式调用 + 重试 + 降级 + 拦截器 | 已完成 |
-| Spring Boot Starter + Micrometer 指标 | 已完成 |
-| 熔断 + 限流 + 契约 + 服务发现 | 已完成 |
-| gRPC + Nacos + Dashboard + OpenTelemetry | 已完成 |
-| Maven Central 发布 | 已完成 |
+| 声明式调用 + 重试 + 降级 + 拦截器 | ✅ 已完成 |
+| Spring Boot Starter + Micrometer 指标 | ✅ 已完成 |
+| 熔断 + 限流 + 契约 + 服务发现 | ✅ 已完成 |
+| gRPC + Nacos + Dashboard + OpenTelemetry | ✅ 已完成 |
+| 过滤器链管道 + 服务发现 + 负载均衡 | ✅ 已完成 |
+| 配置优先级 + 类型化异常体系 | ✅ 已完成 |
+| 每客户端配置 + Actuator/健康检查 + Spring Boot 3.x | ✅ 已完成 |
+| 标准化指标 + 追踪 + 文档 | ✅ 已完成 |
+
+详见 [docs/main.md](docs/main.md)。
 
 ## 对比 OpenFeign
 
 | 能力 | Spider | OpenFeign |
 |---|---|---|
 | 注解 | 有 | 有 |
-| 重试 | 内置 | 需 Spring Retry |
+| 重试 | 内置，智能跳过（按异常类型） | 需 Spring Retry |
 | 熔断 | 内置 | 需 Sentinel/Hystrix |
 | 限流 | 内置 | 无 |
-| 降级（含异常信息） | 内置 | 需 Spring Cloud |
+| 负载均衡 | 轮询/随机，SPI 可扩展 | 需 Ribbon/LoadBalancer |
+| 降级（含异常信息） | 内置，FallbackFactory | 需 Spring Cloud |
 | 拦截器 | before/after/onError | RequestInterceptor |
-| 指标 | 内置 5 个 Micrometer 指标 | 需额外集成 |
-| 追踪 | OpenTelemetry 内置 | 需 Sleuth |
+| 异常体系 | 11 种类型化异常 | 仅 FeignException |
+| 过滤器链 | 可插拔，可重排 | InvocationHandlerFactory |
+| 指标 | `spider.client.*` 含 error_type 标签 | 需额外集成 |
+| 追踪 | OpenTelemetry 内置，URL 去敏 | 需 Sleuth |
 | gRPC | 支持 | 不支持 |
 | Spring 依赖 | 核心零依赖 | 强依赖 |
 | Java 版本 | 8+ | 8+ |
-| 性能 | 22,877 QPS (+15%) | ~18,000 QPS (+45%) |
 
 ## 设计原则
 
 - 接口声明与执行逻辑分离
 - 治理策略与传输协议分离
+- 所有组件均可通过 SPI 替换
 - 核心模块不依赖 Spring
-- 不重复造轮子 — OkHttp、Jackson、Micrometer、Resilience4j
+- 不重复造轮子 — OkHttp、Jackson、Micrometer、Resilience4j、OpenTelemetry
+
+## 文档
+
+- [快速开始](docs/quickstart.md)
+- [配置参考](docs/configuration.md)
+- [错误处理](docs/error-handling.md)
+- [SPI 扩展指南](docs/spi.md)
+- [改进计划](docs/main.md)
 
 ## 许可证
 
