@@ -156,24 +156,24 @@ public interface PayClient {
 
 11 种类型化异常，继承自 `SpiderException`，每种带有 `ErrorCategory`。详见 [错误处理](docs/error-handling.md)。
 
-控制台：引入 starter 后，直接在业务端口访问 Dashboard，无需额外部署：
+### 控制台 Dashboard
 
-```
-http://localhost:8086/spider
-```
+**单服务模式（默认）：** 不需要任何配置。引入 starter 后直接访问 `http://你的端口/spider`，数据直接从本地运行时读取。Dashboard 展示客户端指标、熔断器状态、最近快照和追踪状态。
 
-多服务统一监控时可单独部署控制台：
+**多服务统一监控：** 部署中央控制台，各业务服务配置上报地址：
+
+```yaml
+spider:
+  console:
+    url: http://spider-console:18080
+    service-name: order-service
+```
 
 ```bash
 mvn exec:java -pl spider-console -Dexec.mainClass=io.github.spider.console.SpiderConsoleApplication
 ```
 
-```properties
-spider.console.url=http://localhost:18080
-spider.console.service-name=my-service
-```
-
-控制台是可选的——不配 `spider.console.url` 不影响 Spider 的正常使用，只是没有监控页面。
+详见 [可观测性](docs/observability.md)。
 
 ## 架构
 
@@ -252,6 +252,7 @@ mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.spider.demo.SpiderDemo
 - [配置参考](docs/configuration.md)
 - [错误处理](docs/error-handling.md)
 - [SPI 扩展指南](docs/spi.md)
+- [可观测性](docs/observability.md)
 
 ## 许可证
 

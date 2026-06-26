@@ -138,12 +138,40 @@ public class ReportController {
             cbStates.putIfAbsent(e.getKey(), e.getValue().name());
         }
         dto.setCircuitBreakers(cbStates);
-        dto.setSnapshotCount(recentReports.size());
-        synchronized (recentReports) {
-            int from = Math.max(0, recentReports.size() - 50);
-            List<Map<String, Object>> recent = new ArrayList<>(recentReports.subList(from, recentReports.size()));
-            Collections.reverse(recent);
-            dto.setRecentReports(recent);
+
+        // 最近上报：远程为空时从 SpiderRuntime 生成快照
+        if (!recentReports.isEmpty()) {
+            dto.setSnapshotCount(recentReports.size());
+            synchronized (recentReports) {
+                int from = Math.max(0, recentReports.size() - 50);
+                List<Map<String, Object>> recent = new ArrayList<>(recentReports.subList(from, recentReports.size()));
+                Collections.reverse(recent);
+                dto.setRecentReports(recent);
+            }
+        } else if (!runtimeStats.isEmpty()) {
+            // 嵌入式模式：从本地运行时生成一次快照
+            List<Map<String, Object>> snapshots = new ArrayList<>();
+            Map<String, Object> snapshot = new LinkedHashMap<>();
+            snapshot.put("service", "local");
+            snapshot.put("reportTime", new Date());
+            long totalCalls = 0, totalSuccess = 0, totalFailure = 0;
+            for (Map.Entry<String, SpiderRuntime.ClientStats> e : runtimeStats.entrySet()) {
+                SpiderRuntime.ClientStats s = e.getValue();
+                totalCalls += s.callCount.get();
+                totalSuccess += s.successCount.get();
+                totalFailure += s.failureCount.get();
+            }
+            snapshot.put("calls", totalCalls);
+            snapshot.put("success", totalSuccess);
+            snapshot.put("failure", totalFailure);
+            snapshot.put("successRate", totalCalls > 0
+                    ? String.format("%.1f", 100.0 * totalSuccess / totalCalls) : "N/A");
+            snapshots.add(snapshot);
+            dto.setSnapshotCount(1);
+            dto.setRecentReports(snapshots);
+        } else {
+            dto.setSnapshotCount(0);
+            dto.setRecentReports(Collections.emptyList());
         }
         // 嵌入式模式下追踪状态从未上报，检查 classpath 上是否有 OpenTelemetry
         boolean tracingActive = tracingEnabled || isOpenTelemetryPresent();
