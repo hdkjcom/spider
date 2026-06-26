@@ -50,7 +50,12 @@ public class SpiderRuntime {
     }
 
     public void recordError(String clientName, String methodName, String message) {
-        ErrorEntry e = new ErrorEntry(clientName, methodName, message);
+        recordError(clientName, methodName, message, null);
+    }
+
+    /** 记录错误，包含异常类型用于分类。 */
+    public void recordError(String clientName, String methodName, String message, String errorType) {
+        ErrorEntry e = new ErrorEntry(clientName, methodName, message, errorType);
         recentErrors.add(e);
         while (recentErrors.size() > MAX_ERRORS) recentErrors.poll();
     }
@@ -87,6 +92,7 @@ public class SpiderRuntime {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("client", e.clientName); m.put("method", e.methodName);
             m.put("message", e.message); m.put("time", e.timestamp);
+            if (e.errorType != null) m.put("errorType", e.errorType);
             list.add(m);
         }
         Collections.reverse(list);
@@ -181,8 +187,9 @@ public class SpiderRuntime {
     }
 
     static class ErrorEntry {
-        final String clientName, methodName, message;
+        final String clientName, methodName, message, errorType;
         final long timestamp = System.currentTimeMillis();
-        ErrorEntry(String c, String m, String msg) { clientName=c; methodName=m; message=msg; }
+        ErrorEntry(String c, String m, String msg) { this(c, m, msg, null); }
+        ErrorEntry(String c, String m, String msg, String et) { clientName=c; methodName=m; message=msg; errorType=et; }
     }
 }

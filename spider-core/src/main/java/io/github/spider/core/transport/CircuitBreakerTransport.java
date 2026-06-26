@@ -1,6 +1,7 @@
 package io.github.spider.core.transport;
 
 import io.github.spider.core.client.SpiderClientException;
+import io.github.spider.core.exception.SpiderCircuitBreakerOpenException;
 import io.github.spider.core.policy.SpiderCircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,7 @@ public class CircuitBreakerTransport implements SpiderTransport {
     public SpiderResponse execute(SpiderRequest request) throws IOException {
         if (!circuitBreaker.isAllowed()) {
             log.warn("熔断器已打开，拒绝请求: {}", request.fullUrl());
-            throw new SpiderClientException("Circuit breaker is OPEN for " + request.fullUrl());
+            throw new SpiderCircuitBreakerOpenException(request.fullUrl());
         }
 
         try {

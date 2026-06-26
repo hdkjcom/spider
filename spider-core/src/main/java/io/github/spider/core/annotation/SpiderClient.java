@@ -21,6 +21,18 @@ import java.lang.annotation.*;
  *
  * <p>在 Spring Boot 应用中，使用 {@code @EnableSpiderClients} 进行
  * 自动扫描和 Bean 注册，而不是直接调用 {@code SpiderClientFactory}。
+ *
+ * <h3>配置优先级</h3>
+ * <p>当同一配置项存在多个来源时，按以下优先级解析（高到低）：
+ * <ol>
+ *   <li><b>方法注解</b> — 方法上的 {@code @Timeout}、{@code @Retry} 等</li>
+ *   <li><b>接口注解</b> — 接口上的 {@code @Timeout}、{@code @Retry} 等（方法未指定时生效）</li>
+ *   <li><b>Spring 属性</b> — {@code application.yml} 中的 {@code spider.*} 配置</li>
+ *   <li><b>Builder 默认值</b> — {@code SpiderClientFactory.builder()} 指定的值</li>
+ *   <li><b>框架默认值</b> — 各注解属性自身的默认值</li>
+ * </ol>
+ *
+ * <p>适用范围：超时、重试、熔断、限流、URL、服务名、降级、编解码、传输、指标、追踪、服务发现。
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
@@ -31,7 +43,7 @@ public @interface SpiderClient {
     String name();
 
     /** 远程服务的基地址，例如 {@code http://localhost:8081}。 */
-    String url();
+    String url() default "";
 
     /**
      * 实现此接口的降级类。
