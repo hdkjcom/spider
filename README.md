@@ -198,26 +198,22 @@ See [Configuration Reference](docs/configuration.md) for all options.
 
 ### Monitoring Console
 
-Access the dashboard directly at your app's port — no extra deployment:
+**Single service (default):** No configuration needed. Access `http://your-port/spider` — data is read directly from the local runtime. Dashboard shows client metrics, circuit breaker states, recent snapshots, and tracing status.
 
-```
-http://localhost:8086/spider
-```
+**Multi-service:** Deploy a central console and configure each service to report:
 
-For multi-service unified monitoring, run a standalone console:
+```yaml
+spider:
+  console:
+    url: http://spider-console:18080
+    service-name: order-service
+```
 
 ```bash
 mvn exec:java -pl spider-console -Dexec.mainClass=io.github.spider.console.SpiderConsoleApplication
 ```
 
-```properties
-spider.console.url=http://localhost:18080
-spider.console.service-name=my-service
-```
-
-Console shows: service overview, client metrics (QPS, p50/p90/p99), circuit breaker states, rate limiter status, retry counts, tracing status.
-
-The console is optional — Spider works without it. Skip `spider.console.url` if you don't need monitoring.
+See [Observability](docs/observability.md) for metrics, tracing, actuator endpoints and dashboard details.
 
 ## Architecture
 
@@ -298,6 +294,7 @@ Requires JDK 8+, Maven 3.6+.
 - [Configuration Reference](docs/configuration.md)
 - [Error Handling](docs/error-handling.md)
 - [SPI Extension Guide](docs/spi.md)
+- [Observability](docs/observability.md)
 
 ## License
 
