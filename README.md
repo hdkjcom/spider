@@ -126,8 +126,6 @@ Tags: `client` (service name), `method` (method name).
 
 Tracing: `TracingInterceptor` auto-injects W3C trace-context headers (requires `spider-telemetry` on classpath).
 
-Startup banner: `SpiderClientFactory` prints an ASCII SPIDER banner on first use.
-
 ### Monitoring Console
 
 Access the dashboard directly at your app's port — no extra deployment:
