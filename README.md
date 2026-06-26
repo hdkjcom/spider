@@ -130,9 +130,13 @@ Startup banner: `SpiderClientFactory` prints an ASCII SPIDER banner on first use
 
 ### Monitoring Console
 
-When using the starter, the console dashboard is available directly at `http://localhost:8086/spider` (your app's port).
+Access the dashboard directly at your app's port — no extra deployment:
 
-For multi-service monitoring, run the standalone console:
+```
+http://localhost:8086/spider
+```
+
+For multi-service unified monitoring, run a standalone console:
 
 ```bash
 mvn exec:java -pl spider-console -Dexec.mainClass=io.github.hdkjcom.spider.console.SpiderConsoleApplication
