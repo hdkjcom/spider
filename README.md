@@ -263,19 +263,6 @@ mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.spider.demo.SpiderDemo
 
 Requires JDK 8+, Maven 3.6+.
 
-## Roadmap
-
-| Phase | Status |
-|---|---|
-| Declarative calls + retry + fallback + interceptors | ✅ Done |
-| Spring Boot starter + Micrometer metrics | ✅ Done |
-| Circuit breaker + rate limiter + contract + service discovery | ✅ Done |
-| gRPC + Nacos + Dashboard + OpenTelemetry | ✅ Done |
-| Filter chain pipeline + service discovery + load balancing | ✅ Done |
-| Configuration priority + typed exception hierarchy | ✅ Done |
-| Per-client config + actuator/health + Spring Boot 3.x compat | ✅ Done |
-| Standardized metrics + tracing + docs | ✅ Done |
-
 ## vs OpenFeign
 
 | Feature | Spider | OpenFeign |
