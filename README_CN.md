@@ -232,8 +232,6 @@ mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.spider.demo.SpiderDemo
 | 每客户端配置 + Actuator/健康检查 + Spring Boot 3.x | ✅ 已完成 |
 | 标准化指标 + 追踪 + 文档 | ✅ 已完成 |
 
-详见 [docs/main.md](docs/main.md)。
-
 ## 对比 OpenFeign
 
 | 能力 | Spider | OpenFeign |
@@ -267,7 +265,6 @@ mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.spider.demo.SpiderDemo
 - [配置参考](docs/configuration.md)
 - [错误处理](docs/error-handling.md)
 - [SPI 扩展指南](docs/spi.md)
-- [改进计划](docs/main.md)
 
 ## 许可证
 
