@@ -1,192 +1,63 @@
 package io.github.spider.core.client;
 
-import io.github.spider.core.codec.SpiderDecoder;
-import io.github.spider.core.interceptor.SpiderInterceptor;
+import io.github.spider.core.exception.SpiderConfigurationException;
+import io.github.spider.core.invocation.SpiderFilterChain;
+import io.github.spider.core.invocation.SpiderInvocationContext;
 import io.github.spider.core.metadata.MethodMetadata;
-import io.github.spider.core.metrics.SpiderMetrics;
-import io.github.spider.core.metadata.RequestTemplate;
-import io.github.spider.core.policy.FallbackFactory;
-import io.github.spider.core.runtime.SpiderRuntime;
-import io.github.spider.core.transport.SpiderRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import io.github.spider.core.transport.SpiderResponse;
-import io.github.spider.core.transport.SpiderTransport;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.List;
 import java.util.Map;
 
 /**
  * JDK 动态代理 InvocationHandler。
- * 驱动 @SpiderClient 接口上每次方法调用的完整请求生命周期。
+ *
+ * <p>将方法调用委托给 {@link SpiderFilterChain}，后者通过有序的 filter 序列执行完整的请求生命周期。
+ * Object 基础方法（toString、hashCode、equals）被短路处理，不进入远程调用管道。
+ *
+ * <p>与旧版本不同，此类不再直接包含重试、熔断、降级、指标等治理逻辑 ——
+ * 这些已提取到独立的 {@link io.github.spider.core.invocation.SpiderInvocationFilter} 实现中。
  */
 public class SpiderInvocationHandler implements InvocationHandler {
-
-    private static final Logger log = LoggerFactory.getLogger(SpiderInvocationHandler.class);
 
     private final String clientName;
     private final String baseUrl;
     private final Map<Method, MethodMetadata> metadataCache;
-    private final RequestTemplate requestTemplate;
-    private final SpiderTransport transport;
-    private final SpiderDecoder decoder;
-    private final List<SpiderInterceptor> interceptors;
-    private final Map<Method, Object> fallbackMap;
-    private final SpiderMetrics metrics;
+    private final SpiderFilterChain chainTemplate;
 
+    /**
+     * @param clientName    逻辑服务名称
+     * @param baseUrl       注解或 builder 中配置的基地址（可为空）
+     * @param metadataCache 预解析的方法元数据
+     * @param chainTemplate 每次调用被复制的 filter 链模板
+     */
     public SpiderInvocationHandler(String clientName,
                                    String baseUrl,
                                    Map<Method, MethodMetadata> metadataCache,
-                                   RequestTemplate requestTemplate,
-                                   SpiderTransport transport,
-                                   SpiderDecoder decoder,
-                                   List<SpiderInterceptor> interceptors,
-                                   Map<Method, Object> fallbackMap,
-                                   SpiderMetrics metrics) {
+                                   SpiderFilterChain chainTemplate) {
         this.clientName = clientName;
         this.baseUrl = baseUrl;
         this.metadataCache = metadataCache;
-        this.requestTemplate = requestTemplate;
-        this.transport = transport;
-        this.decoder = decoder;
-        this.interceptors = interceptors;
-        this.fallbackMap = fallbackMap;
-        this.metrics = metrics != null ? metrics : SpiderMetrics.NOOP;
+        this.chainTemplate = chainTemplate;
     }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        // 处理 Object 基础方法
+        // Object 基础方法短路处理
         if (method.getDeclaringClass() == Object.class) {
             return method.invoke(this, args);
         }
 
         MethodMetadata meta = metadataCache.get(method);
         if (meta == null) {
-            throw new SpiderClientException("No Spider metadata found for method: " + method.getName()
+            throw new SpiderConfigurationException("No Spider metadata found for method: " + method.getName()
                     + ". Is @SpiderGet or @SpiderPost missing?");
         }
 
-        SpiderRequest request = requestTemplate.build(meta, args, baseUrl);
-        SpiderResponseContext.clear();
-        String methodName = method.getName();
+        // 每次调用创建新的上下文和链实例（链内部有游标状态，不可复用）
+        SpiderInvocationContext ctx = new SpiderInvocationContext(clientName, method, args, meta, baseUrl);
+        SpiderFilterChain chain = new SpiderFilterChain(chainTemplate.filters());
 
-        // 执行前置拦截器
-        for (SpiderInterceptor interceptor : interceptors) {
-            request = interceptor.beforeRequest(request);
-        }
-
-        Exception lastException = null;
-        int attempts = meta.maxAttempts();
-
-        for (int i = 0; i < attempts; i++) {
-            try {
-                SpiderResponse response = transport.execute(request);
-
-                // 执行后置拦截器
-                for (SpiderInterceptor interceptor : interceptors) {
-                    response = interceptor.afterResponse(response);
-                }
-
-                if (!response.isSuccessful()) {
-                    throw new SpiderClientException(response.statusCode(),
-                            "HTTP " + response.statusCode() + " for " + request.fullUrl());
-                }
-
-                // 调用成功
-                SpiderResponseContext.set(response);
-                metrics.recordSuccess(clientName, methodName, request, response);
-                SpiderRuntime.getInstance().recordSuccess(clientName);
-                SpiderRuntime.getInstance().recordLatency(clientName, response.elapsedMillis());
-                log.debug("{} {} 调用成功 ({}ms)", clientName, request.fullUrl(), response.elapsedMillis());
-
-                // 解码响应
-                if (meta.returnType() == void.class || meta.returnType() == Void.class) {
-                    return null;
-                }
-                if (decoder == null) {
-                    throw new SpiderClientException("No SpiderDecoder configured, cannot decode response for "
-                            + method.getName());
-                }
-                return decoder.decode(response.bodyBytes(), meta.returnType());
-
-            } catch (IOException e) {
-                lastException = e;
-                if (i < attempts - 1 && meta.isRetryable() && meta.shouldRetryOn(e)) {
-                    metrics.recordRetry(clientName, methodName, i + 1, e);
-                    SpiderRuntime.getInstance().recordRetry(clientName);
-                    Thread.sleep(computeBackoff(meta, i + 1));
-                }
-            } catch (SpiderClientException e) {
-                // 检查忽略状态码
-                if (meta.shouldIgnoreStatus(e.statusCode())) {
-                    lastException = e;
-                    break;
-                }
-                // 4xx 不重试
-                if (e.statusCode() >= 400 && e.statusCode() < 500) {
-                    lastException = e;
-                    break;
-                }
-                // 5xx 根据配置决定是否重试
-                lastException = e;
-                if (i < attempts - 1 && meta.isRetryable() && meta.shouldRetryOn(e)) {
-                    metrics.recordRetry(clientName, methodName, i + 1, e);
-                    SpiderRuntime.getInstance().recordRetry(clientName);
-                    Thread.sleep(computeBackoff(meta, i + 1));
-                }
-            }
-        }
-
-        // 记录失败
-        metrics.recordFailure(clientName, methodName, request, lastException);
-        SpiderRuntime.getInstance().recordFailure(clientName);
-        SpiderRuntime.getInstance().recordError(clientName, methodName,
-                lastException != null ? lastException.getMessage() : "unknown");
-        log.warn("{} {} 调用失败，重试{}次后放弃: {}", clientName, request.fullUrl(), attempts,
-                lastException != null ? lastException.getMessage() : "unknown");
-
-        // 通知拦截器异常
-        for (SpiderInterceptor interceptor : interceptors) {
-            if (interceptor.onError(request, lastException)) {
-                return null;
-            }
-        }
-
-        // 尝试降级
-        Object fallbackOrFactory = fallbackMap.get(method);
-        if (fallbackOrFactory != null) {
-            try {
-                metrics.recordFallback(clientName, methodName);
-                SpiderRuntime.getInstance().recordFallback(clientName);
-                log.info("{} {} 触发降级", clientName, request.fullUrl());
-                Object fallbackInstance = resolveFallback(fallbackOrFactory, lastException);
-                return method.invoke(fallbackInstance, args);
-            } catch (Exception fbEx) {
-                throw new SpiderClientException("Fallback failed for " + method.getName(), fbEx);
-            }
-        }
-
-        throw lastException != null ? lastException : new SpiderClientException("Request failed for " + method.getName());
-    }
-
-    @SuppressWarnings("unchecked")
-    private Object resolveFallback(Object fallbackOrFactory, Throwable cause) throws Exception {
-        if (fallbackOrFactory instanceof FallbackFactory) {
-            return ((FallbackFactory<Object>) fallbackOrFactory).create(cause);
-        }
-        return fallbackOrFactory;
-    }
-
-    private long computeBackoff(MethodMetadata meta, int attempt) {
-        if ("EXPONENTIAL".equalsIgnoreCase(meta.backoffStrategy())) {
-            long delay = meta.backoffMillis() * (1L << (attempt - 1));
-            long max = meta.maxBackoffMillis();
-            return max > 0 ? Math.min(delay, max) : delay;
-        }
-        return meta.backoffMillis();
+        return chain.next(ctx);
     }
 }
