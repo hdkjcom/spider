@@ -22,15 +22,14 @@ class MicrometerSpiderMetricsTest {
 
         metrics.recordSuccess("test-client", "getUser", request, response);
 
-        // Verify counters were incremented
-        double successCount = registry.get("spider.requests.success")
+        double successCount = registry.get("spider.client.requests")
                 .tag("client", "test-client")
                 .tag("method", "getUser")
+                .tag("outcome", "success")
                 .counter().count();
         assertEquals(1.0, successCount);
 
-        // Verify timer recorded
-        double totalTime = registry.get("spider.requests.duration")
+        double totalTime = registry.get("spider.client.duration")
                 .tag("client", "test-client")
                 .tag("method", "getUser")
                 .timer().totalTime(TimeUnit.MILLISECONDS);
@@ -42,9 +41,11 @@ class MicrometerSpiderMetricsTest {
         metrics.recordFailure("test-client", "getUser", new SpiderRequest(),
                 new RuntimeException("connection refused"));
 
-        double failureCount = registry.get("spider.requests.failure")
+        double failureCount = registry.get("spider.client.requests")
                 .tag("client", "test-client")
                 .tag("method", "getUser")
+                .tag("outcome", "failure")
+                .tag("error_type", "RuntimeException")
                 .counter().count();
         assertEquals(1.0, failureCount);
     }
@@ -54,9 +55,10 @@ class MicrometerSpiderMetricsTest {
         metrics.recordRetry("test-client", "getUser", 1,
                 new RuntimeException("timeout"));
 
-        double retryCount = registry.get("spider.requests.retry")
+        double retryCount = registry.get("spider.client.retries")
                 .tag("client", "test-client")
                 .tag("method", "getUser")
+                .tag("error_type", "RuntimeException")
                 .counter().count();
         assertEquals(1.0, retryCount);
     }
@@ -65,7 +67,7 @@ class MicrometerSpiderMetricsTest {
     void testRecordFallback() {
         metrics.recordFallback("test-client", "getUser");
 
-        double fallbackCount = registry.get("spider.requests.fallback")
+        double fallbackCount = registry.get("spider.client.fallbacks")
                 .tag("client", "test-client")
                 .tag("method", "getUser")
                 .counter().count();
@@ -80,14 +82,15 @@ class MicrometerSpiderMetricsTest {
         metrics.recordSuccess("svc", "a", new SpiderRequest(), resp);
         metrics.recordSuccess("svc", "b", new SpiderRequest(), resp);
 
-        assertEquals(2.0, registry.get("spider.requests.success").tag("method", "a").counter().count());
-        assertEquals(1.0, registry.get("spider.requests.success").tag("method", "b").counter().count());
+        assertEquals(2.0, registry.get("spider.client.requests")
+                .tag("method", "a").tag("outcome", "success").counter().count());
+        assertEquals(1.0, registry.get("spider.client.requests")
+                .tag("method", "b").tag("outcome", "success").counter().count());
     }
 
     @Test
     void testNoopMetricsDoesNotThrow() {
         SpiderMetrics noop = SpiderMetrics.NOOP;
-        // All methods should be safe to call
         noop.recordSuccess("c", "m", null, null);
         noop.recordFailure("c", "m", null, null);
         noop.recordRetry("c", "m", 1, null);

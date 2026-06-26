@@ -43,15 +43,16 @@ public class TracingInterceptor implements SpiderInterceptor {
      */
     @Override
     public SpiderRequest beforeRequest(SpiderRequest request) {
-        Span span = tracer.spanBuilder(request.method() + " " + request.path())
+        String spanName = request.method() + " " + stripQuery(request.path());
+        Span span = tracer.spanBuilder(spanName)
                 .setSpanKind(SpanKind.CLIENT)
                 .setAttribute("http.method", request.method())
-                .setAttribute("http.url", request.fullUrl())
+                .setAttribute("http.url", stripQuery(request.fullUrl()))
+                .setAttribute("spider.protocol", "http")
                 .startSpan();
         Scope scope = span.makeCurrent();
         CURRENT_SPAN.set(new SpanContext(span, scope));
 
-        // Inject W3C trace-context into HTTP headers
         GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
                 .inject(Context.current(), request, HEADER_SETTER);
         return request;
@@ -67,10 +68,11 @@ public class TracingInterceptor implements SpiderInterceptor {
     public SpiderResponse afterResponse(SpiderResponse response) {
         SpanContext ctx = CURRENT_SPAN.get();
         if (ctx != null) {
+            ctx.span.setAttribute("http.status_code", response.statusCode());
             if (!response.isSuccessful()) {
                 ctx.span.setStatus(StatusCode.ERROR, "HTTP " + response.statusCode());
+                ctx.span.setAttribute("error", true);
             }
-            ctx.span.setAttribute("http.status_code", response.statusCode());
             ctx.span.end();
             ctx.scope.close();
             CURRENT_SPAN.remove();
@@ -90,12 +92,21 @@ public class TracingInterceptor implements SpiderInterceptor {
         SpanContext ctx = CURRENT_SPAN.get();
         if (ctx != null) {
             ctx.span.setStatus(StatusCode.ERROR, ex.getMessage() != null ? ex.getMessage() : "error");
+            ctx.span.setAttribute("error", true);
+            ctx.span.setAttribute("exception.type", ex.getClass().getSimpleName());
             ctx.span.recordException(ex);
             ctx.span.end();
             ctx.scope.close();
             CURRENT_SPAN.remove();
         }
         return false;
+    }
+
+    /** 从 URL 中去除 query string，避免暴露敏感参数到 span 属性中。 */
+    private static String stripQuery(String url) {
+        if (url == null) return "";
+        int idx = url.indexOf('?');
+        return idx >= 0 ? url.substring(0, idx) : url;
     }
 
     private static class SpanContext {
