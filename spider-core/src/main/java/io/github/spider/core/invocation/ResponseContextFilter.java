@@ -20,9 +20,7 @@ public class ResponseContextFilter implements SpiderInvocationFilter {
             }
             return result;
         } finally {
-            if (ctx.response() == null) {
-                SpiderResponseContext.clear();
-            }
+            SpiderResponseContext.clear();
         }
     }
 }

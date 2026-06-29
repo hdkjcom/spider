@@ -219,7 +219,10 @@ public class ReportController {
     /** 容错类型转换：Number 取 longValue，String 解析为 long，其他返回 0 */
     private long toLong(Object v) {
         if (v instanceof Number) return ((Number) v).longValue();
-        if (v instanceof String) return Long.parseLong((String) v);
+        if (v instanceof String) {
+            try { return Long.parseLong((String) v); }
+            catch (NumberFormatException e) { return 0; }
+        }
         return 0;
     }
 }

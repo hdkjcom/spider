@@ -10,7 +10,6 @@ import io.github.spider.core.exception.SpiderServiceDiscoveryException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.Properties;
 
 /**
  * 基于 Nacos 的服务发现实现。

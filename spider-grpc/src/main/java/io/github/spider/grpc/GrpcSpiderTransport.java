@@ -176,7 +176,7 @@ public class GrpcSpiderTransport implements SpiderTransport {
                 if (next != null) return true;
                 try {
                     StreamItem item = responseQueue.poll(30, TimeUnit.SECONDS);
-                    if (item == null) return false; // 超时
+                    if (item == null) { call.cancel("timeout", null); return false; }
                     if (item.done) { done = true; call.cancel(null, null); return false; }
                     if (item.error != null) {
                         call.cancel(item.error, null);
