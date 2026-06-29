@@ -60,7 +60,7 @@ public class ResilienceCircuitBreaker implements SpiderCircuitBreaker {
      */
     @Override
     public void recordSuccess() {
-        delegate.onSuccess(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+        delegate.onSuccess(0, TimeUnit.MILLISECONDS);
     }
 
     /**
