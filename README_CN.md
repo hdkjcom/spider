@@ -154,7 +154,7 @@ public interface PayClient {
 
 ### 错误处理
 
-11 种类型化异常，继承自 `SpiderException`，每种带有 `ErrorCategory`。详见 [错误处理](docs/error-handling.md)。
+11 种类型化异常，继承自 `SpiderException`，每种带有 `ErrorCategory`。详见 [核心概念](docs/concepts.md)。
 
 ### 控制台 Dashboard
 
@@ -250,7 +250,7 @@ mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.spider.demo.SpiderDemo
 
 - [快速开始](docs/quickstart.md)
 - [配置参考](docs/configuration.md)
-- [错误处理](docs/error-handling.md)
+- [核心概念](docs/concepts.md)
 - [SPI 扩展指南](docs/spi.md)
 - [可观测性](docs/observability.md)
 
