@@ -2,6 +2,7 @@ package io.github.spider.spring.boot.autoconfigure;
 
 import io.github.spider.core.policy.SpiderCircuitBreaker;
 import io.github.spider.core.runtime.SpiderRuntime;
+import io.github.spider.core.runtime.dto.RuntimeSummaryDto;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -52,10 +53,10 @@ public class SpiderHealthIndicator implements HealthIndicator {
         builder.withDetail("clients", clientHealth);
 
         // 整体统计
-        Map<String, Object> summary = SpiderRuntime.getInstance().summary();
-        builder.withDetail("uptimeSeconds", summary.get("uptimeSeconds"));
-        builder.withDetail("totalCalls", summary.get("totalCalls"));
-        builder.withDetail("successRate", summary.get("successRate"));
+        RuntimeSummaryDto summary = SpiderRuntime.getInstance().summary();
+        builder.withDetail("uptimeSeconds", summary.getUptimeSeconds());
+        builder.withDetail("totalCalls", summary.getTotalCalls());
+        builder.withDetail("successRate", summary.getSuccessRate());
 
         return builder.build();
     }

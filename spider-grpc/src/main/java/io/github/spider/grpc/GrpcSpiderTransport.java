@@ -13,9 +13,7 @@ import io.grpc.stub.StreamObserver;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -124,7 +122,9 @@ public class GrpcSpiderTransport implements SpiderTransport {
 
     /** 关闭底层 Channel。 */
     public void shutdown() throws InterruptedException {
-        channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+        if (!channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)) {
+            channel.shutdownNow();
+        }
     }
 
     // ---- 流式调用支持 ----
@@ -143,8 +143,7 @@ public class GrpcSpiderTransport implements SpiderTransport {
         ClientCall<DynamicMessage, DynamicMessage> call =
                 channel.newCall(binding.methodDescriptor, CallOptions.DEFAULT);
 
-        BlockingQueue<String> responseQueue = new ArrayBlockingQueue<>(256);
-        List<String> responses = new ArrayList<>();
+        BlockingQueue<StreamItem> responseQueue = new ArrayBlockingQueue<>(256);
 
         ClientCalls.asyncServerStreamingCall(call, requestMessage,
                 new StreamObserver<DynamicMessage>() {
@@ -152,18 +151,18 @@ public class GrpcSpiderTransport implements SpiderTransport {
                     public void onNext(DynamicMessage value) {
                         try {
                             String json = JsonFormat.printer().print(value);
-                            responseQueue.add(json);
+                            responseQueue.add(new StreamItem(json, null, false));
                         } catch (Exception e) {
                             onError(e);
                         }
                     }
                     @Override
                     public void onError(Throwable t) {
-                        responseQueue.add("__ERROR__:" + t.getMessage());
+                        responseQueue.add(new StreamItem(null, t.getMessage(), false));
                     }
                     @Override
                     public void onCompleted() {
-                        responseQueue.add("__DONE__");
+                        responseQueue.add(new StreamItem(null, null, true));
                     }
                 });
 
@@ -176,12 +175,13 @@ public class GrpcSpiderTransport implements SpiderTransport {
                 if (done) return false;
                 if (next != null) return true;
                 try {
-                    next = responseQueue.poll(30, TimeUnit.SECONDS);
-                    if (next == null) return false; // 超时
-                    if ("__DONE__".equals(next)) { done = true; next = null; return false; }
-                    if (next.startsWith("__ERROR__:")) {
-                        throw new RuntimeException(next.substring(10));
+                    StreamItem item = responseQueue.poll(30, TimeUnit.SECONDS);
+                    if (item == null) return false; // 超时
+                    if (item.done) { done = true; return false; }
+                    if (item.error != null) {
+                        throw new RuntimeException(item.error);
                     }
+                    next = item.json;
                     return true;
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -200,6 +200,18 @@ public class GrpcSpiderTransport implements SpiderTransport {
     }
 
     // ---- 内部类型 ----
+
+    private static class StreamItem {
+        final String json;
+        final String error;
+        final boolean done;
+
+        StreamItem(String json, String error, boolean done) {
+            this.json = json;
+            this.error = error;
+            this.done = done;
+        }
+    }
 
     private static class GrpcMethodBinding {
         final String fullMethodName;

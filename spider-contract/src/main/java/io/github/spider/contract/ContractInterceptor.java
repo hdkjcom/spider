@@ -22,7 +22,7 @@ public class ContractInterceptor implements SpiderInterceptor {
         if (responseValidator != null && response.isSuccessful()) {
             try {
                 responseValidator.validate(response);
-            } catch (RuntimeException e) {
+            } catch (Exception e) {
                 throw new SpiderContractViolationException(
                         "Contract validation failed: " + e.getMessage(), e);
             }

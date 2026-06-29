@@ -106,17 +106,16 @@ public class OkHttpSpiderTransport implements SpiderTransport {
         }
 
         // 执行请求
-        Response okResponse = client.newCall(builder.build()).execute();
+        try (Response okResponse = client.newCall(builder.build()).execute()) {
+            long elapsed = System.currentTimeMillis() - start;
 
-        long elapsed = System.currentTimeMillis() - start;
+            byte[] bodyBytes = okResponse.body() != null ? okResponse.body().bytes() : new byte[0];
 
-        // 转换为 SpiderResponse
-        byte[] bodyBytes = okResponse.body() != null ? okResponse.body().bytes() : new byte[0];
-
-        return new SpiderResponse()
-                .statusCode(okResponse.code())
-                .headers(okResponse.headers().toMultimap())
-                .bodyBytes(bodyBytes)
-                .elapsedMillis(elapsed);
+            return new SpiderResponse()
+                    .statusCode(okResponse.code())
+                    .headers(okResponse.headers().toMultimap())
+                    .bodyBytes(bodyBytes)
+                    .elapsedMillis(elapsed);
+        }
     }
 }

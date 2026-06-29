@@ -5,6 +5,7 @@ import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.api.naming.NamingService;
 import com.alibaba.nacos.api.naming.pojo.Instance;
 import io.github.spider.core.discovery.SpiderServiceDiscovery;
+import io.github.spider.core.exception.SpiderServiceDiscoveryException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +65,7 @@ public class NacosSpiderDiscovery implements SpiderServiceDiscovery {
             }
             return urls;
         } catch (NacosException e) {
-            throw new RuntimeException("Failed to resolve service: " + serviceName, e);
+            throw new SpiderServiceDiscoveryException("Failed to resolve service: " + serviceName, e);
         }
     }
 }

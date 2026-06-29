@@ -71,7 +71,7 @@ public class RetryFilter implements SpiderInvocationFilter {
                     ctx.incrementRetryCount();
                     metrics.recordRetry(ctx.clientName(), ctx.method().getName(), i + 1, e);
                     SpiderRuntime.getInstance().recordRetry(ctx.clientName());
-                    Thread.sleep(computeBackoff(ctx, i + 1));
+                    sleepBackoff(ctx, i + 1);
                 }
 
             } catch (SpiderConfigurationException | SpiderCircuitBreakerOpenException
@@ -88,7 +88,7 @@ public class RetryFilter implements SpiderInvocationFilter {
                     ctx.incrementRetryCount();
                     metrics.recordRetry(ctx.clientName(), ctx.method().getName(), i + 1, e);
                     SpiderRuntime.getInstance().recordRetry(ctx.clientName());
-                    Thread.sleep(computeBackoff(ctx, i + 1));
+                    sleepBackoff(ctx, i + 1);
                 }
 
             } catch (SpiderClientException e) {
@@ -107,7 +107,7 @@ public class RetryFilter implements SpiderInvocationFilter {
                     ctx.incrementRetryCount();
                     metrics.recordRetry(ctx.clientName(), ctx.method().getName(), i + 1, e);
                     SpiderRuntime.getInstance().recordRetry(ctx.clientName());
-                    Thread.sleep(computeBackoff(ctx, i + 1));
+                    sleepBackoff(ctx, i + 1);
                 }
             }
         }
@@ -132,5 +132,13 @@ public class RetryFilter implements SpiderInvocationFilter {
             return max > 0 ? Math.min(delay, max) : delay;
         }
         return ctx.methodMetadata().backoffMillis();
+    }
+
+    private void sleepBackoff(SpiderInvocationContext ctx, int attempt) {
+        try {
+            Thread.sleep(computeBackoff(ctx, attempt));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

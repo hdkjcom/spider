@@ -28,7 +28,7 @@ public class SpiderMetricsAutoConfiguration {
      */
     @Bean
     @ConditionalOnBean(MeterRegistry.class)
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(SpiderMetrics.class)
     public SpiderMetrics spiderMetrics(MeterRegistry registry) {
         return new MicrometerSpiderMetrics(registry);
     }
