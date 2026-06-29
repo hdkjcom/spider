@@ -10,6 +10,7 @@ import io.micrometer.core.instrument.Timer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
  * Micrometer-based SpiderMetrics implementation.
@@ -41,54 +42,57 @@ public class MicrometerSpiderMetrics implements SpiderMetrics {
     @Override
     public void recordSuccess(String clientName, String methodName, SpiderRequest request, SpiderResponse response) {
         String key = key(clientName, methodName, "success");
-        successCounters.computeIfAbsent(key,
-                k -> Counter.builder("spider.client.requests")
-                        .tag("client", clientName)
-                        .tag("method", methodName)
-                        .tag("outcome", "success")
-                        .description("Successful Spider invocations")
-                        .register(registry)).increment();
-        timers.computeIfAbsent(key(clientName, methodName),
-                k -> Timer.builder("spider.client.duration")
-                        .tag("client", clientName)
-                        .tag("method", methodName)
-                        .description("Spider invocation duration")
-                        .register(registry)).record(response.elapsedMillis(), TimeUnit.MILLISECONDS);
+        getOrCreate(successCounters, key, () -> Counter.builder("spider.client.requests")
+                .tag("client", clientName).tag("method", methodName)
+                .tag("outcome", "success")
+                .description("Successful Spider invocations")
+                .register(registry)).increment();
+        getOrCreate(timers, key(clientName, methodName), () -> Timer.builder("spider.client.duration")
+                .tag("client", clientName).tag("method", methodName)
+                .description("Spider invocation duration")
+                .register(registry)).record(response.elapsedMillis(), TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void recordFailure(String clientName, String methodName, SpiderRequest request, Exception exception) {
         String errorType = exception != null ? exception.getClass().getSimpleName() : "unknown";
-        failureCounters.computeIfAbsent(key(clientName, methodName, "failure", errorType),
-                k -> Counter.builder("spider.client.requests")
-                        .tag("client", clientName)
-                        .tag("method", methodName)
-                        .tag("outcome", "failure")
-                        .tag("error_type", errorType)
-                        .description("Failed Spider invocations")
-                        .register(registry)).increment();
+        String key = key(clientName, methodName, "failure", errorType);
+        getOrCreate(failureCounters, key, () -> Counter.builder("spider.client.requests")
+                .tag("client", clientName).tag("method", methodName)
+                .tag("outcome", "failure").tag("error_type", errorType)
+                .description("Failed Spider invocations")
+                .register(registry)).increment();
     }
 
     @Override
     public void recordRetry(String clientName, String methodName, int attempt, Exception cause) {
         String errorType = cause != null ? cause.getClass().getSimpleName() : "unknown";
-        retryCounters.computeIfAbsent(key(clientName, methodName, "retry", errorType),
-                k -> Counter.builder("spider.client.retries")
-                        .tag("client", clientName)
-                        .tag("method", methodName)
-                        .tag("error_type", errorType)
-                        .description("Spider retry attempts")
-                        .register(registry)).increment();
+        String key = key(clientName, methodName, "retry", errorType);
+        getOrCreate(retryCounters, key, () -> Counter.builder("spider.client.retries")
+                .tag("client", clientName).tag("method", methodName)
+                .tag("error_type", errorType)
+                .description("Spider retry attempts")
+                .register(registry)).increment();
     }
 
     @Override
     public void recordFallback(String clientName, String methodName) {
-        fallbackCounters.computeIfAbsent(key(clientName, methodName),
-                k -> Counter.builder("spider.client.fallbacks")
-                        .tag("client", clientName)
-                        .tag("method", methodName)
-                        .description("Spider fallback invocations")
-                        .register(registry)).increment();
+        String key = key(clientName, methodName);
+        getOrCreate(fallbackCounters, key, () -> Counter.builder("spider.client.fallbacks")
+                .tag("client", clientName).tag("method", methodName)
+                .description("Spider fallback invocations")
+                .register(registry)).increment();
+    }
+
+    /**
+     * 线程安全的 get-or-create，避免 {@code computeIfAbsent} 在高并发下重复注册 Meter。
+     */
+    private static <T> T getOrCreate(ConcurrentMap<String, T> map, String key, Supplier<T> factory) {
+        T existing = map.get(key);
+        if (existing != null) return existing;
+        T created = factory.get();
+        T prev = map.putIfAbsent(key, created);
+        return prev != null ? prev : created;
     }
 
     private static String key(String... parts) {

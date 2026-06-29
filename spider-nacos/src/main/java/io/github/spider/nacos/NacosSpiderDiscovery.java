@@ -10,6 +10,7 @@ import io.github.spider.core.exception.SpiderServiceDiscoveryException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Properties;
 
 /**
  * 基于 Nacos 的服务发现实现。
@@ -45,6 +46,11 @@ public class NacosSpiderDiscovery implements SpiderServiceDiscovery {
      */
     public NacosSpiderDiscovery(NamingService namingService) {
         this.namingService = namingService;
+    }
+
+    /** 关闭与 Nacos 服务端的连接。 */
+    public void close() throws NacosException {
+        namingService.shutDown();
     }
 
     /**

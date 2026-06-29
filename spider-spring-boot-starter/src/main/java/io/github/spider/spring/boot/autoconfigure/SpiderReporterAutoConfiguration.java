@@ -7,6 +7,8 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 
+import javax.annotation.PreDestroy;
+
 /**
  * Spider 控制台上报自动配置类，在配置了 {@code spider.console.url} 时激活。
  * 应用启动后就绪后自动向 Spider Console 上报服务信息。
@@ -27,5 +29,11 @@ public class SpiderReporterAutoConfiguration {
     @EventListener(ApplicationReadyEvent.class)
     public void startReporter() {
         SpiderReporter.start(consoleUrl, serviceName);
+    }
+
+    /** 应用关闭时停止上报，释放线程资源。 */
+    @PreDestroy
+    public void stopReporter() {
+        SpiderReporter.stop();
     }
 }

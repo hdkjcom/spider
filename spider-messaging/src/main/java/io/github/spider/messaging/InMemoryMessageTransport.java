@@ -12,10 +12,15 @@ import java.util.concurrent.*;
  */
 public class InMemoryMessageTransport implements SpiderMessageTransport {
 
-    /** 处理器注册表，按主题（topic）存储请求处理器。 */
     private final Map<String, ReplyHandler> handlers = new ConcurrentHashMap<>();
-    /** 缓存线程池，用于异步执行消息处理。 */
-    private final ExecutorService executor = Executors.newCachedThreadPool();
+    /** 有界线程池（最多 16 线程，空闲 60s 回收），仅用于测试/本地开发。 */
+    private final ThreadPoolExecutor executor = new ThreadPoolExecutor(
+            0, 16, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(),
+            r -> {
+                Thread t = new Thread(r, "spider-msg");
+                t.setDaemon(true);
+                return t;
+            });
 
     /**
      * 注册一个请求处理器，用于处理指定主题的请求并生成回复。
@@ -56,13 +61,19 @@ public class InMemoryMessageTransport implements SpiderMessageTransport {
     /** 请求处理器的函数式接口。 */
     @FunctionalInterface
     public interface ReplyHandler {
-        /**
-         * 处理请求并生成回复。
-         *
-         * @param request Spider 请求对象
-         * @return Spider 响应对象
-         * @throws Exception 处理过程中可能抛出的异常
-         */
         SpiderResponse handle(SpiderRequest request) throws Exception;
+    }
+
+    /** 关闭线程池，等待进行中的任务完成。 */
+    public void shutdown() {
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 }

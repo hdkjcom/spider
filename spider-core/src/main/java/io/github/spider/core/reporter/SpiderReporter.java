@@ -50,9 +50,17 @@ public class SpiderReporter {
         }, 5, interval, TimeUnit.SECONDS);
     }
 
-    /** 停止上报调度器。 */
+    /** 停止上报调度器，等待进行中的任务完成。 */
     public static void stop() {
         executor.shutdown();
+        try {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     private static void report(String consoleUrl, String serviceName) throws Exception {
