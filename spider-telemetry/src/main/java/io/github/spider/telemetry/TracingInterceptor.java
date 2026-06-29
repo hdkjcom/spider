@@ -53,9 +53,17 @@ public class TracingInterceptor implements SpiderInterceptor {
         Scope scope = span.makeCurrent();
         CURRENT_SPAN.set(new SpanContext(span, scope));
 
-        GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
-                .inject(Context.current(), request, HEADER_SETTER);
-        return request;
+        try {
+            GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
+                    .inject(Context.current(), request, HEADER_SETTER);
+            return request;
+        } catch (Exception e) {
+            CURRENT_SPAN.remove();
+            scope.close();
+            span.recordException(e);
+            span.end();
+            throw e;
+        }
     }
 
     /**

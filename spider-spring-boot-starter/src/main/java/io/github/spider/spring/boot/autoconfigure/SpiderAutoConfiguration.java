@@ -79,12 +79,10 @@ public class SpiderAutoConfiguration {
     public SpiderDecoder spiderDecoder() { return new JacksonSpiderDecoder(); }
 
     /**
-     * 提供默认的 NOOP 指标实现，待 spider-metrics 模块提供 Micrometer 实现时可被覆盖。
-     *
-     * @return NOOP SpiderMetrics
+     * 提供默认的 NOOP 指标实现。当其他自动配置（如 Micrometer）提供了 SpiderMetrics Bean 时，此 NOOP 会被自动跳过。
      */
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(SpiderMetrics.class)
     public SpiderMetrics spiderMetrics() { return SpiderMetrics.NOOP; }
 
     /**

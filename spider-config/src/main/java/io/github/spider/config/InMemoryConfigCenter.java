@@ -24,9 +24,21 @@ public class InMemoryConfigCenter implements SpiderConfigCenter {
     /** 根据 key 获取配置值，不存在时返回默认值。 */
     @Override public String get(String key, String defaultValue) { return config.getOrDefault(key, defaultValue); }
     /** 获取 int 类型的配置值。 */
-    @Override public int getInt(String key, int defaultValue) { return Integer.parseInt(get(key, String.valueOf(defaultValue))); }
+    @Override public int getInt(String key, int defaultValue) {
+        try {
+            return Integer.parseInt(get(key, String.valueOf(defaultValue)));
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
     /** 获取 long 类型的配置值。 */
-    @Override public long getLong(String key, long defaultValue) { return Long.parseLong(get(key, String.valueOf(defaultValue))); }
+    @Override public long getLong(String key, long defaultValue) {
+        try {
+            return Long.parseLong(get(key, String.valueOf(defaultValue)));
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
     @Override public void addListener(ConfigChangeListener listener) { listeners.add(listener); }
     @Override public void watch(String... keys) { /* 内存模式始终监听所有 key */ }
 }

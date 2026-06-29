@@ -25,6 +25,8 @@ public class SpiderContractAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public SpiderInterceptor contractInterceptor() {
+        // null is intentional: no default validator bean is registered;
+        // users can supply their own via a ContractValidator bean.
         return new ContractInterceptor(null);
     }
 }

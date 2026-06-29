@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,11 +35,10 @@ public class SpiderReporter {
                 return t;
             });
 
-    private static volatile boolean started = false;
+    private static final AtomicBoolean started = new AtomicBoolean(false);
 
     public static void start(String consoleUrl, String serviceName) {
-        if (started) return;
-        started = true;
+        if (!started.compareAndSet(false, true)) return;
         int interval = Integer.parseInt(System.getProperty("spider.console.interval", "10"));
 
         executor.scheduleAtFixedRate(() -> {
@@ -48,6 +48,11 @@ public class SpiderReporter {
                 log.warn("上报失败", e);
             }
         }, 5, interval, TimeUnit.SECONDS);
+    }
+
+    /** 停止上报调度器。 */
+    public static void stop() {
+        executor.shutdown();
     }
 
     private static void report(String consoleUrl, String serviceName) throws Exception {
@@ -75,7 +80,6 @@ public class SpiderReporter {
         }
         payload.put("metrics", metrics);
 
-        // 添加熔断器状态
         Map<String, Object> breakers = new LinkedHashMap<>();
         for (Map.Entry<String, io.github.spider.core.policy.SpiderCircuitBreaker.State> e :
                 rt.circuitBreakerStates().entrySet()) {
@@ -83,24 +87,36 @@ public class SpiderReporter {
         }
         payload.put("circuitBreakers", breakers);
 
-        // 链路追踪信息
+        boolean tracingAvailable;
+        try {
+            Class.forName("io.opentelemetry.api.OpenTelemetry");
+            tracingAvailable = true;
+        } catch (ClassNotFoundException e) {
+            tracingAvailable = false;
+        }
         Map<String, Object> tracing = new LinkedHashMap<>();
-        tracing.put("enabled", isTracingAvailable());
+        tracing.put("enabled", tracingAvailable);
         payload.put("tracing", tracing);
 
         String json = buildJson(payload);
         URL url = new URL(consoleUrl + "/api/report");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type", "application/json");
-        conn.setDoOutput(true);
-        conn.setConnectTimeout(3000);
-        conn.setReadTimeout(3000);
-        try (OutputStream os = conn.getOutputStream()) {
-            os.write(json.getBytes(StandardCharsets.UTF_8));
+        try {
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(3000);
+            conn.setReadTimeout(3000);
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(json.getBytes(StandardCharsets.UTF_8));
+            }
+            int code = conn.getResponseCode();
+            if (code >= 400) {
+                log.warn("上报返回 HTTP {}", code);
+            }
+        } finally {
+            conn.disconnect();
         }
-        conn.getResponseCode();
-        conn.disconnect();
     }
 
     private static String buildJson(Map<String, Object> payload) {
@@ -134,6 +150,12 @@ public class SpiderReporter {
                 sb.append("\"").append(esc(e.getKey())).append("\":\"").append(esc(e.getValue())).append("\"");
             }
         }
+        sb.append("},\"tracing\":{");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> tracing = (Map<String, Object>) payload.get("tracing");
+        if (tracing != null) {
+            sb.append("\"enabled\":").append(tracing.get("enabled"));
+        }
         sb.append("}}");
         return sb.toString();
     }
@@ -143,14 +165,5 @@ public class SpiderReporter {
         return "\"" + esc(String.valueOf(v)) + "\"";
     }
 
-    private static String esc(Object s) { return String.valueOf(s).replace("\"", "\\\""); }
-
-    private static boolean isTracingAvailable() {
-        try {
-            Class.forName("io.opentelemetry.api.OpenTelemetry");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
+    private static String esc(Object s) { return String.valueOf(s).replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t"); }
 }

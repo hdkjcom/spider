@@ -20,7 +20,9 @@ public class ResponseContextFilter implements SpiderInvocationFilter {
             }
             return result;
         } finally {
-            // 不在 finally 中 clear —— 用户代码需要在调用后访问响应
+            if (ctx.response() == null) {
+                SpiderResponseContext.clear();
+            }
         }
     }
 }

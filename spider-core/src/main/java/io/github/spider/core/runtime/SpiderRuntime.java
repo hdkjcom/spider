@@ -1,6 +1,11 @@
 package io.github.spider.core.runtime;
 
 import io.github.spider.core.policy.SpiderCircuitBreaker;
+import io.github.spider.core.runtime.dto.ClientStatsDto;
+import io.github.spider.core.runtime.dto.ErrorEntryDto;
+import io.github.spider.core.runtime.dto.FullReportDto;
+import io.github.spider.core.runtime.dto.OutcomePointDto;
+import io.github.spider.core.runtime.dto.RuntimeSummaryDto;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,6 +29,7 @@ public class SpiderRuntime {
     public void recordSuccess(String clientName) {
         ClientStats s = statsMap.computeIfAbsent(clientName, ClientStats::new);
         s.successCount.incrementAndGet();
+        s.callCount.incrementAndGet();
         s.addOutcome(true);
     }
 
@@ -75,57 +81,64 @@ public class SpiderRuntime {
         return states;
     }
 
-    public Map<String, Object> summary() {
-        Map<String, Object> s = new LinkedHashMap<>();
-        s.put("uptimeSeconds", uptimeMillis() / 1000.0);
-        s.put("clientCount", statsMap.size());
+    public RuntimeSummaryDto summary() {
+        RuntimeSummaryDto s = new RuntimeSummaryDto();
+        s.setUptimeSeconds(uptimeMillis() / 1000.0);
+        s.setClientCount(statsMap.size());
         long calls = 0, ok = 0, fail = 0;
         for (ClientStats cs : statsMap.values()) { calls += cs.callCount.get(); ok += cs.successCount.get(); fail += cs.failureCount.get(); }
-        s.put("totalCalls", calls); s.put("totalSuccess", ok); s.put("totalFailure", fail);
-        s.put("successRate", calls > 0 ? String.format("%.1f%%", 100.0 * ok / calls) : "N/A");
+        s.setTotalCalls(calls);
+        s.setTotalSuccess(ok);
+        s.setTotalFailure(fail);
+        s.setSuccessRate(calls > 0 ? String.format("%.1f%%", 100.0 * ok / calls) : "N/A");
         return s;
     }
 
-    public List<Map<String, Object>> recentErrors() {
-        List<Map<String, Object>> list = new ArrayList<>();
+    public List<ErrorEntryDto> recentErrors() {
+        List<ErrorEntryDto> list = new ArrayList<>();
         for (ErrorEntry e : recentErrors) {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("client", e.clientName); m.put("method", e.methodName);
-            m.put("message", e.message); m.put("time", e.timestamp);
-            if (e.errorType != null) m.put("errorType", e.errorType);
-            list.add(m);
+            ErrorEntryDto dto = new ErrorEntryDto();
+            dto.setClient(e.clientName);
+            dto.setMethod(e.methodName);
+            dto.setMessage(e.message);
+            dto.setTime(e.timestamp);
+            if (e.errorType != null) dto.setErrorType(e.errorType);
+            list.add(dto);
         }
         Collections.reverse(list);
         return list;
     }
 
-    public Map<String, Object> fullReport() {
-        Map<String, Object> r = new LinkedHashMap<>();
-        r.put("summary", summary());
-        r.put("recentErrors", recentErrors());
-        Map<String, Map<String, Object>> clients = new LinkedHashMap<>();
+    public FullReportDto fullReport() {
+        FullReportDto r = new FullReportDto();
+        r.setSummary(summary());
+        r.setRecentErrors(recentErrors());
+        Map<String, ClientStatsDto> clients = new LinkedHashMap<>();
         for (String name : clientNames()) {
             ClientStats cs = stats(name);
             if (cs == null) continue;
-            Map<String, Object> cm = new LinkedHashMap<>();
-            cm.put("name", name);
-            cm.put("calls", cs.callCount.get());
-            cm.put("success", cs.successCount.get());
-            cm.put("failure", cs.failureCount.get());
-            cm.put("retries", cs.retryCount.get());
-            cm.put("fallbacks", cs.fallbackCount.get());
-            cm.put("avgLatencyMs", String.format("%.2f", cs.avgLatencyMs()));
-            cm.put("p50", cs.latencyPercentile(50));
-            cm.put("p90", cs.latencyPercentile(90));
-            cm.put("p99", cs.latencyPercentile(99));
+            ClientStatsDto cm = new ClientStatsDto();
+            cm.setName(name);
+            cm.setCalls(cs.callCount.get());
+            cm.setSuccess(cs.successCount.get());
+            cm.setFailure(cs.failureCount.get());
+            cm.setRetries(cs.retryCount.get());
+            cm.setFallbacks(cs.fallbackCount.get());
+            cm.setAvgLatencyMs(cs.avgLatencyMs());
+            cm.setP50(cs.latencyPercentile(50));
+            cm.setP90(cs.latencyPercentile(90));
+            cm.setP99(cs.latencyPercentile(99));
             long c = cs.callCount.get(), s = cs.successCount.get();
-            cm.put("successRate", c > 0 ? String.format("%.1f", 100.0 * s / c) : "100.0");
-            cm.put("outcomes", cs.outcomeHistory());
-            cm.put("currentQps", cs.currentQps());
+            cm.setSuccessRate(c > 0 ? 100.0 * s / c : 100.0);
+            cm.setCurrentQps(cs.currentQps());
             clients.put(name, cm);
         }
-        r.put("clients", clients);
-        r.put("circuitBreakers", circuitBreakerStates());
+        r.setClients(clients);
+        Map<String, String> cbStringStates = new LinkedHashMap<>();
+        for (Map.Entry<String, SpiderCircuitBreaker.State> e : circuitBreakerStates().entrySet()) {
+            cbStringStates.put(e.getKey(), e.getValue().name());
+        }
+        r.setCircuitBreakers(cbStringStates);
         return r;
     }
 
@@ -161,13 +174,13 @@ public class SpiderRuntime {
             while (latencies.size() > MAX_LATENCIES) latencies.poll();
         }
 
-        public List<Map<String,Object>> outcomeHistory() {
-            List<Map<String,Object>> list = new ArrayList<>();
+        public List<OutcomePointDto> outcomeHistory() {
+            List<OutcomePointDto> list = new ArrayList<>();
             for (OutcomePoint p : outcomes) {
-                Map<String,Object> m = new LinkedHashMap<>();
-                m.put("success", p.success);
-                m.put("time", p.timestamp);
-                list.add(m);
+                OutcomePointDto dto = new OutcomePointDto();
+                dto.setSuccess(p.success);
+                dto.setTime(p.timestamp);
+                list.add(dto);
             }
             return list;
         }

@@ -36,8 +36,9 @@ public class DefaultMethodMetadataParser implements MethodMetadataParser {
         SpiderPost postAnn = method.getAnnotation(SpiderPost.class);
         SpiderPut putAnn = method.getAnnotation(SpiderPut.class);
         SpiderDelete deleteAnn = method.getAnnotation(SpiderDelete.class);
+        SpiderStream streamAnn = method.getAnnotation(SpiderStream.class);
 
-        if (getAnn == null && postAnn == null && putAnn == null && deleteAnn == null) {
+        if (getAnn == null && postAnn == null && putAnn == null && deleteAnn == null && streamAnn == null) {
             return null;
         }
 
@@ -49,6 +50,8 @@ public class DefaultMethodMetadataParser implements MethodMetadataParser {
             meta.httpMethod("POST").pathTemplate(postAnn.value());
         } else if (putAnn != null) {
             meta.httpMethod("PUT").pathTemplate(putAnn.value());
+        } else if (streamAnn != null) {
+            meta.httpMethod("GET").pathTemplate(streamAnn.value());
         } else {
             meta.httpMethod("DELETE").pathTemplate(deleteAnn.value());
         }

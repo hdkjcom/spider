@@ -2,6 +2,7 @@ package io.github.spider.console.controller;
 
 import io.github.spider.console.dto.*;
 import io.github.spider.core.runtime.SpiderRuntime;
+import io.github.spider.core.runtime.dto.ErrorEntryDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,7 @@ public class ReportController {
     /** 熔断器最新状态 */
     private final Map<String, String> circuitBreakers = new ConcurrentHashMap<>();
     /** 最近上报的指标快照，最多保留 1000 条 */
-    private final List<Map<String, Object>> recentReports = Collections.synchronizedList(new ArrayList<>());
+    private final List<ErrorEntryDto> recentReports = Collections.synchronizedList(new ArrayList<>());
     /** 链路追踪是否已启用 */
     private volatile boolean tracingEnabled = false;
 
@@ -61,7 +62,14 @@ public class ReportController {
             metricMap.put("avgLatencyMs", calls > 0 ? String.format("%.1f", (double) m.getTotalLatencyMs() / calls) : "0");
             metricMap.put("reportTime", new Date());
             serviceStore.put(client + "#" + method, metricMap);
-            recentReports.add(new LinkedHashMap<>(metricMap));
+            long failures = m.getFailure();
+            ErrorEntryDto entry = new ErrorEntryDto();
+            entry.setClient(client);
+            entry.setMethod(method);
+            entry.setMessage("service=" + service + " calls=" + calls + " successRate=" + metricMap.get("successRate"));
+            entry.setErrorType(failures > 0 ? "failure" : "success");
+            entry.setTime(System.currentTimeMillis());
+            recentReports.add(entry);
             synchronized (recentReports) {
                 while (recentReports.size() > 1000) recentReports.remove(0);
             }
@@ -144,31 +152,15 @@ public class ReportController {
             dto.setSnapshotCount(recentReports.size());
             synchronized (recentReports) {
                 int from = Math.max(0, recentReports.size() - 50);
-                List<Map<String, Object>> recent = new ArrayList<>(recentReports.subList(from, recentReports.size()));
+                List<ErrorEntryDto> recent = new ArrayList<>(recentReports.subList(from, recentReports.size()));
                 Collections.reverse(recent);
                 dto.setRecentReports(recent);
             }
         } else if (!runtimeStats.isEmpty()) {
-            // 嵌入式模式：从本地运行时生成一次快照
-            List<Map<String, Object>> snapshots = new ArrayList<>();
-            Map<String, Object> snapshot = new LinkedHashMap<>();
-            snapshot.put("service", "local");
-            snapshot.put("reportTime", new Date());
-            long totalCalls = 0, totalSuccess = 0, totalFailure = 0;
-            for (Map.Entry<String, SpiderRuntime.ClientStats> e : runtimeStats.entrySet()) {
-                SpiderRuntime.ClientStats s = e.getValue();
-                totalCalls += s.callCount.get();
-                totalSuccess += s.successCount.get();
-                totalFailure += s.failureCount.get();
-            }
-            snapshot.put("calls", totalCalls);
-            snapshot.put("success", totalSuccess);
-            snapshot.put("failure", totalFailure);
-            snapshot.put("successRate", totalCalls > 0
-                    ? String.format("%.1f", 100.0 * totalSuccess / totalCalls) : "N/A");
-            snapshots.add(snapshot);
-            dto.setSnapshotCount(1);
-            dto.setRecentReports(snapshots);
+            // 嵌入式模式：从本地运行时获取最近错误
+            List<ErrorEntryDto> errors = SpiderRuntime.getInstance().recentErrors();
+            dto.setSnapshotCount(errors.size());
+            dto.setRecentReports(errors);
         } else {
             dto.setSnapshotCount(0);
             dto.setRecentReports(Collections.emptyList());

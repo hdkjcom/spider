@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -78,7 +80,7 @@ public class SpiderCodegen {
             Files.createDirectories(Paths.get(packagePath));
 
             File javaFile = new File(packagePath, interfaceName + ".java");
-            try (PrintWriter w = new PrintWriter(new FileWriter(javaFile))) {
+            try (PrintWriter w = new PrintWriter(new OutputStreamWriter(new FileOutputStream(javaFile), StandardCharsets.UTF_8))) {
                 writeInterface(w, serviceName, interfaceName, svc.getValue(), schemas);
             }
         }
@@ -94,7 +96,7 @@ public class SpiderCodegen {
                 JsonNode schema = s.getValue();
                 if ("object".equals(schema.has("type") ? schema.get("type").asText() : "object")) {
                     File dtoFile = new File(packagePath, dtoName + ".java");
-                    try (PrintWriter w = new PrintWriter(new FileWriter(dtoFile))) {
+                    try (PrintWriter w = new PrintWriter(new OutputStreamWriter(new FileOutputStream(dtoFile), StandardCharsets.UTF_8))) {
                         writeDTO(w, dtoName, schema);
                     }
                 }

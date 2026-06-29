@@ -3,10 +3,8 @@ package io.github.spider.spring.boot.autoconfigure;
 import io.github.spider.core.annotation.SpiderClient;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
-import org.springframework.beans.factory.support.BeanDefinitionReaderUtils;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.ResourceLoaderAware;
@@ -80,19 +78,16 @@ public class SpiderClientRegistrar implements ImportBeanDefinitionRegistrar, Res
         BeanDefinitionBuilder builder = BeanDefinitionBuilder
                 .genericBeanDefinition(SpiderClientFactoryBean.class);
 
-        // 将客户端接口 Class 作为构造参数传入
         builder.addConstructorArgValue(clientInterface);
-        // 引用共享的 SpiderClientFactory Bean
         builder.addConstructorArgReference("spiderClientFactory");
-
-        builder.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);
 
         AbstractBeanDefinition beanDefinition = builder.getBeanDefinition();
         beanDefinition.setRole(BeanDefinition.ROLE_APPLICATION);
 
         String beanName = StringUtils.uncapitalize(clientName) + "SpiderClient";
-        BeanDefinitionHolder holder = new BeanDefinitionHolder(beanDefinition, beanName, new String[]{clientInterface.getName()});
-        BeanDefinitionReaderUtils.registerBeanDefinition(holder, registry);
+        registry.registerBeanDefinition(beanName, beanDefinition);
+        // 注册接口全限定名作为别名，支持按类型注入
+        registry.registerAlias(beanName, clientInterface.getName());
     }
 
     private ClassPathScanningCandidateComponentProvider getScanner() {

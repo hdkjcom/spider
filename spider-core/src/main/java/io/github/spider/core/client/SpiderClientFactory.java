@@ -70,7 +70,9 @@ public class SpiderClientFactory {
                 int n = in.read(buf);
                 if (n > 0) System.out.println(new String(buf, 0, n));
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            // banner 读取失败不影响功能
+        }
     }
 
     private final SpiderTransport transport;
@@ -169,6 +171,7 @@ public class SpiderClientFactory {
         filters.add(new RequestBuildFilter(template));
         filters.add(new InterceptorFilter(interceptors));
         filters.add(new FallbackFilter(fallbacks, metrics));
+        filters.add(new MetricsFilter(metrics));
         filters.add(new RetryFilter(metrics));
         filters.add(new TransportFilter(effectiveTransport));
         filters.add(new DecodeFilter(decoder));
