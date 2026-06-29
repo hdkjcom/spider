@@ -18,6 +18,8 @@ import io.github.spider.core.policy.SpiderCircuitBreaker;
 import io.github.spider.core.runtime.SpiderRuntime;
 import io.github.spider.core.transport.CircuitBreakerTransport;
 import io.github.spider.core.transport.SpiderTransport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -56,6 +58,7 @@ import java.util.*;
  */
 public class SpiderClientFactory {
 
+    private static final Logger log = LoggerFactory.getLogger(SpiderClientFactory.class);
     private static volatile boolean bannerPrinted = false;
 
     static { printBanner(); }
@@ -68,7 +71,7 @@ public class SpiderClientFactory {
             if (in != null) {
                 byte[] buf = new byte[4096];
                 int n = in.read(buf);
-                if (n > 0) System.out.println(new String(buf, 0, n));
+                if (n > 0) log.info(new String(buf, 0, n));
             }
         } catch (Exception e) {
             // banner 读取失败不影响功能

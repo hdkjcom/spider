@@ -69,8 +69,8 @@ public class ReportController {
             entry.setMessage("service=" + service + " calls=" + calls + " successRate=" + metricMap.get("successRate"));
             entry.setErrorType(failures > 0 ? "failure" : "success");
             entry.setTime(System.currentTimeMillis());
-            recentReports.add(entry);
             synchronized (recentReports) {
+                recentReports.add(entry);
                 while (recentReports.size() > 1000) recentReports.remove(0);
             }
         }
