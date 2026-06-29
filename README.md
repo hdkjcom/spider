@@ -41,13 +41,13 @@ Spider = **Declarative Remote Call** + **Elastic Governance** + **Contract Prote
 <dependency>
     <groupId>io.github.hdkjcom.spider</groupId>
     <artifactId>spider-spring-boot-starter</artifactId>
-    <version>0.1.7</version>
+    <version>0.1.8</version>
 </dependency>
 
 <!-- Plain Java: three dependencies -->
-<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-core</artifactId><version>0.1.7</version></dependency>
-<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-http</artifactId><version>0.1.7</version></dependency>
-<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-jackson</artifactId><version>0.1.7</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-core</artifactId><version>0.1.8</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-http</artifactId><version>0.1.8</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-jackson</artifactId><version>0.1.8</version></dependency>
 ```
 
 ### Define a client
