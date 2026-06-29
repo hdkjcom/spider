@@ -140,7 +140,7 @@ public class GrpcSpiderTransport implements SpiderTransport {
         }
 
         DynamicMessage requestMessage = buildRequest(binding, request.body());
-        ClientCall<DynamicMessage, DynamicMessage> call =
+        final ClientCall<DynamicMessage, DynamicMessage> call =
                 channel.newCall(binding.methodDescriptor, CallOptions.DEFAULT);
 
         BlockingQueue<StreamItem> responseQueue = new ArrayBlockingQueue<>(256);
@@ -177,8 +177,9 @@ public class GrpcSpiderTransport implements SpiderTransport {
                 try {
                     StreamItem item = responseQueue.poll(30, TimeUnit.SECONDS);
                     if (item == null) return false; // 超时
-                    if (item.done) { done = true; return false; }
+                    if (item.done) { done = true; call.cancel(null, null); return false; }
                     if (item.error != null) {
+                        call.cancel(item.error, null);
                         throw new RuntimeException(item.error);
                     }
                     next = item.json;
