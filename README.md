@@ -171,7 +171,7 @@ try {
 }
 ```
 
-See [Error Handling](docs/error-handling.md) for the full hierarchy.
+See [Core Concepts](docs/concepts.md) for the full hierarchy.
 
 ### Configuration
 
@@ -292,7 +292,7 @@ Requires JDK 8+, Maven 3.6+.
 
 - [Quick Start](docs/quickstart.md)
 - [Configuration Reference](docs/configuration.md)
-- [Error Handling](docs/error-handling.md)
+- [Core Concepts](docs/concepts.md)
 - [SPI Extension Guide](docs/spi.md)
 - [Observability](docs/observability.md)
 
