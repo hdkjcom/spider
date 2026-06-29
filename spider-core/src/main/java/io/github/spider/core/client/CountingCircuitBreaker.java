@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 /**
  * 简单的内存熔断器实现。
  * 当存在 @SpiderCircuitBreaker 注解但未提供自定义实现时，作为默认实现使用。
- * 线程安全。
+ * 线程安全：状态转换在 HALF_OPEN 路径使用 synchronized 保护。
  */
 public class CountingCircuitBreaker implements SpiderCircuitBreaker {
 
@@ -27,6 +27,7 @@ public class CountingCircuitBreaker implements SpiderCircuitBreaker {
     private final AtomicReference<State> currentState = new AtomicReference<>(State.CLOSED);
     private final AtomicLong openedAt = new AtomicLong(0);
     private final AtomicInteger halfOpenCalls = new AtomicInteger(0);
+    private final Object halfOpenLock = new Object();
 
     public CountingCircuitBreaker(io.github.spider.core.annotation.SpiderCircuitBreaker annotation) {
         this(annotation.failureRateThreshold(),
@@ -55,12 +56,16 @@ public class CountingCircuitBreaker implements SpiderCircuitBreaker {
         if (state == State.OPEN) {
             long now = System.currentTimeMillis();
             if (now - openedAt.get() >= waitDurationInOpenStateMillis) {
-                // 转换为半开状态
-                currentState.compareAndSet(State.OPEN, State.HALF_OPEN);
-                halfOpenCalls.set(1);  // 计入本次转换调用
-                successCount.set(0);
-                failureCount.set(0);
-                return true;
+                synchronized (halfOpenLock) {
+                    if (currentState.get() == State.OPEN
+                            && now - openedAt.get() >= waitDurationInOpenStateMillis) {
+                        currentState.set(State.HALF_OPEN);
+                        successCount.set(0);
+                        failureCount.set(0);
+                        halfOpenCalls.set(1);
+                        return true;
+                    }
+                }
             }
             return false;
         }

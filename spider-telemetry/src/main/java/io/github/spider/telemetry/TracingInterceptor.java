@@ -44,13 +44,19 @@ public class TracingInterceptor implements SpiderInterceptor {
     @Override
     public SpiderRequest beforeRequest(SpiderRequest request) {
         String spanName = request.method() + " " + stripQuery(request.path());
-        Span span = tracer.spanBuilder(spanName)
-                .setSpanKind(SpanKind.CLIENT)
-                .setAttribute("http.method", request.method())
-                .setAttribute("http.url", stripQuery(request.fullUrl()))
-                .setAttribute("spider.protocol", "http")
-                .startSpan();
-        Scope scope = span.makeCurrent();
+        Span span;
+        Scope scope;
+        try {
+            span = tracer.spanBuilder(spanName)
+                    .setSpanKind(SpanKind.CLIENT)
+                    .setAttribute("http.method", request.method())
+                    .setAttribute("http.url", stripQuery(request.fullUrl()))
+                    .setAttribute("spider.protocol", "http")
+                    .startSpan();
+            scope = span.makeCurrent();
+        } catch (Exception e) {
+            return request; // 追踪失败不影响业务
+        }
         CURRENT_SPAN.set(new SpanContext(span, scope));
 
         try {
