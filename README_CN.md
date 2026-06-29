@@ -41,7 +41,7 @@ Spider = **声明式远程调用** + **弹性治理** + **契约保护** + **可
 <dependency>
     <groupId>io.github.hdkjcom.spider</groupId>
     <artifactId>spider-spring-boot-starter</artifactId>
-    <version>0.1.7</version>
+    <version>0.1.8</version>
 </dependency>
 
 <!-- 纯 Java 项目：三个依赖 -->
