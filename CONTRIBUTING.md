@@ -39,7 +39,7 @@ mvn test -pl spider-core -Dtest=MethodMetadataTest  # Run single test
 
 ## Adding a New Module
 
-1. Create `spider-<name>/pom.xml` with parent `io.github.hdkjcom.spider:spider:0.1.8`
+1. Create `spider-<name>/pom.xml` with parent `io.github.hdkjcom.spider:spider:0.1.9`
 2. Add `<module>spider-<name></module>` to root `pom.xml`
 3. Implement the appropriate SPI from `spider-core`
 4. Add unit tests
