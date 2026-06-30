@@ -46,6 +46,9 @@ public class SpiderAutoConfiguration {
                 .connectTimeout(props.getTransport().getConnectTimeout(), TimeUnit.MILLISECONDS)
                 .readTimeout(props.getTransport().getReadTimeout(), TimeUnit.MILLISECONDS)
                 .writeTimeout(props.getTransport().getWriteTimeout(), TimeUnit.MILLISECONDS)
+                .connectionPool(new okhttp3.ConnectionPool(
+                        props.getTransport().getMaxIdleConnections(),
+                        props.getTransport().getKeepAliveMinutes(), TimeUnit.MINUTES))
                 .build();
     }
 

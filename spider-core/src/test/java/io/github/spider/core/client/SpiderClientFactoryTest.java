@@ -9,6 +9,9 @@ import io.github.spider.core.transport.SpiderResponse;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -241,5 +244,59 @@ class SpiderClientFactoryTest {
         // 空格 URL 被视为未设置，应回退到服务发现
         assertTrue(fullUrl.get().startsWith("http://discovery:9001"),
                 "空格-only URL 应回退到服务发现: " + fullUrl.get());
+    }
+
+    @SpiderClient(name = "async-test", url = "http://localhost:8080")
+    interface AsyncClient {
+        @SpiderGet("/hello")
+        CompletableFuture<String> hello();
+
+        @SpiderGet("/users/{id}")
+        CompletableFuture<Pojo> getUser(@io.github.spider.core.annotation.Path("id") Long id);
+    }
+
+    public static class Pojo {
+        public String name;
+        public int age;
+        public Pojo() {}
+    }
+
+    @Test
+    void testAsyncCompletableFuture() throws Exception {
+        SpiderClientFactory factory = SpiderClientFactory.builder()
+                .transport(request -> new SpiderResponse().statusCode(200)
+                        .bodyBytes("ok".getBytes(StandardCharsets.UTF_8)))
+                .decoder((bytes, type) -> new String(bytes, StandardCharsets.UTF_8))
+                .build();
+
+        AsyncClient client = factory.create(AsyncClient.class);
+        CompletableFuture<String> future = client.hello();
+        assertNotNull(future);
+
+        String result = future.get(5, TimeUnit.SECONDS);
+        assertEquals("ok", result);
+    }
+
+    @Test
+    void testAsyncCompletableFutureExtractsGenericType() throws Exception {
+        SpiderClientFactory factory = SpiderClientFactory.builder()
+                .transport(request -> new SpiderResponse().statusCode(200)
+                        .bodyBytes("{\"name\":\"alice\",\"age\":30}".getBytes(StandardCharsets.UTF_8)))
+                .decoder((bytes, type) -> {
+                    // 验证解码时 type 已是 Pojo，不是 CompletableFuture
+                    assertEquals(Pojo.class.getName(), ((Class<?>) type).getName(),
+                            "decode type should be Pojo, not CompletableFuture");
+                    Pojo p = new Pojo();
+                    p.name = "alice";
+                    p.age = 30;
+                    return p;
+                })
+                .build();
+
+        AsyncClient client = factory.create(AsyncClient.class);
+        CompletableFuture<Pojo> future = client.getUser(1L);
+        Pojo result = future.get(5, TimeUnit.SECONDS);
+        assertEquals("alice", result.name);
+        assertEquals(30, result.age);
     }
 }

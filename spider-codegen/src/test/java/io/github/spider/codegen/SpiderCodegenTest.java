@@ -1,11 +1,13 @@
 package io.github.spider.codegen;
 
+import io.github.spider.core.annotation.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -165,5 +167,28 @@ class SpiderCodegenTest {
         }
         assertThrows(java.io.IOException.class, () ->
                 new SpiderCodegen().generate(specFile));
+    }
+
+    @SpiderClient(name = "test-service", url = "http://localhost:8080")
+    interface TestClient {
+        @SpiderGet("/users/{id}")
+        String getUser(@io.github.spider.core.annotation.Path("id") Long id,
+                       @io.github.spider.core.annotation.Query("name") String name);
+        @SpiderPost("/users")
+        String createUser(@io.github.spider.core.annotation.Body String body);
+    }
+
+    @Test
+    void testGenerateOpenApiFromInterface() throws Exception {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        new SpiderCodegen().generateFromInterface(TestClient.class, pw);
+        pw.flush();
+        String json = sw.toString();
+        assertTrue(json.contains("\"openapi\" : \"3.0.0\""));
+        assertTrue(json.contains("\"/users/{id}\""));
+        assertTrue(json.contains("\"get\""));
+        assertTrue(json.contains("\"post\""));
+        assertTrue(json.contains("\"components\""));
     }
 }

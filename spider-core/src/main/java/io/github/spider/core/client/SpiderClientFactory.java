@@ -94,6 +94,7 @@ public class SpiderClientFactory {
     private final long defaultRetryBackoffMillis;
     private final Map<String, Map<String, Object>> clientConfigs;
     private final List<SpiderInvocationFilter> extraFilters;
+    private final java.util.concurrent.ExecutorService asyncExecutor;
 
     private SpiderClientFactory(Builder builder) {
         this.transport = builder.transport;
@@ -110,6 +111,7 @@ public class SpiderClientFactory {
         this.defaultRetryBackoffMillis = builder.defaultRetryBackoffMillis;
         this.clientConfigs = builder.clientConfigs != null ? builder.clientConfigs : Collections.<String, Map<String, Object>>emptyMap();
         this.extraFilters = new ArrayList<>(builder.extraFilters);
+        this.asyncExecutor = builder.asyncExecutor;
     }
 
     @SuppressWarnings("unchecked")
@@ -184,7 +186,7 @@ public class SpiderClientFactory {
         filters.add(new DecodeFilter(decoder));
 
         SpiderFilterChain chainTemplate = new SpiderFilterChain(filters);
-        SpiderInvocationHandler handler = new SpiderInvocationHandler(name, baseUrl, meta, chainTemplate);
+        SpiderInvocationHandler handler = new SpiderInvocationHandler(name, baseUrl, meta, chainTemplate, asyncExecutor);
 
         return (T) Proxy.newProxyInstance(clientInterface.getClassLoader(), new Class[]{clientInterface}, handler);
     }
@@ -226,6 +228,7 @@ public class SpiderClientFactory {
         private long defaultRetryBackoffMillis = 100;
         private Map<String, Map<String, Object>> clientConfigs;
         private List<SpiderInvocationFilter> extraFilters = new ArrayList<>();
+        private java.util.concurrent.ExecutorService asyncExecutor;
 
         public Builder transport(SpiderTransport t) { this.transport = t; return this; }
         public Builder decoder(SpiderDecoder d) { this.decoder = d; return this; }
@@ -247,6 +250,8 @@ public class SpiderClientFactory {
         }
         /** 插入自定义过滤器到链首（在标准过滤器之前执行）。可用于 ConfigCenter 覆盖等扩展。 */
         public Builder addFilter(SpiderInvocationFilter filter) { this.extraFilters.add(filter); return this; }
+        /** 设置异步调用线程池（用于 CompletableFuture 返回类型的方法）。默认 ForkJoinPool.commonPool()。 */
+        public Builder asyncExecutor(java.util.concurrent.ExecutorService executor) { this.asyncExecutor = executor; return this; }
 
         public SpiderClientFactory build() {
             if (transport == null) throw new SpiderConfigurationException("transport is required");

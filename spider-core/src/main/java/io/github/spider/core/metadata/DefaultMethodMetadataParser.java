@@ -89,8 +89,13 @@ public class DefaultMethodMetadataParser implements MethodMetadataParser {
                 .backoffMillis(defaultBackoffMillis);
         }
 
-        // 返回类型
-        meta.returnType(method.getGenericReturnType());
+        // 返回类型：异步方法 CompletableFuture<T> 提取 T 作为解码类型
+        Type returnType = method.getGenericReturnType();
+        if (isCompletableFuture(returnType) && returnType instanceof java.lang.reflect.ParameterizedType) {
+            Type[] args = ((java.lang.reflect.ParameterizedType) returnType).getActualTypeArguments();
+            if (args.length > 0) returnType = args[0];
+        }
+        meta.returnType(returnType);
 
         // 解析参数注解
         java.lang.reflect.Parameter[] parameters = method.getParameters();
@@ -110,5 +115,14 @@ public class DefaultMethodMetadataParser implements MethodMetadataParser {
         }
 
         return meta;
+    }
+
+    /** 判断类型是否为 CompletableFuture（含泛型参数化类型）。 */
+    private static boolean isCompletableFuture(Type type) {
+        if (type == java.util.concurrent.CompletableFuture.class) return true;
+        if (type instanceof java.lang.reflect.ParameterizedType) {
+            return ((java.lang.reflect.ParameterizedType) type).getRawType() == java.util.concurrent.CompletableFuture.class;
+        }
+        return false;
     }
 }

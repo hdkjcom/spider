@@ -7,7 +7,12 @@ import io.github.spider.core.metadata.MethodMetadata;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
 
 /**
  * JDK 动态代理 InvocationHandler。
@@ -15,8 +20,8 @@ import java.util.Map;
  * <p>将方法调用委托给 {@link SpiderFilterChain}，后者通过有序的 filter 序列执行完整的请求生命周期。
  * Object 基础方法（toString、hashCode、equals）被短路处理，不进入远程调用管道。
  *
- * <p>与旧版本不同，此类不再直接包含重试、熔断、降级、指标等治理逻辑 ——
- * 这些已提取到独立的 {@link io.github.spider.core.invocation.SpiderInvocationFilter} 实现中。
+ * <p>支持异步调用：当方法返回类型为 {@link CompletableFuture} 时，调用被提交到异步线程池执行，
+ * 同步管道逻辑不变。这允许调用方以非阻塞方式集成（如 Spring MVC 返回 CompletableFuture）。
  */
 public class SpiderInvocationHandler implements InvocationHandler {
 
@@ -24,21 +29,25 @@ public class SpiderInvocationHandler implements InvocationHandler {
     private final String baseUrl;
     private final Map<Method, MethodMetadata> metadataCache;
     private final SpiderFilterChain chainTemplate;
+    private final ExecutorService asyncExecutor;
 
-    /**
-     * @param clientName    逻辑服务名称
-     * @param baseUrl       注解或 builder 中配置的基地址（可为空）
-     * @param metadataCache 预解析的方法元数据
-     * @param chainTemplate 每次调用被复制的 filter 链模板
-     */
     public SpiderInvocationHandler(String clientName,
                                    String baseUrl,
                                    Map<Method, MethodMetadata> metadataCache,
                                    SpiderFilterChain chainTemplate) {
+        this(clientName, baseUrl, metadataCache, chainTemplate, ForkJoinPool.commonPool());
+    }
+
+    public SpiderInvocationHandler(String clientName,
+                                   String baseUrl,
+                                   Map<Method, MethodMetadata> metadataCache,
+                                   SpiderFilterChain chainTemplate,
+                                   ExecutorService asyncExecutor) {
         this.clientName = clientName;
         this.baseUrl = baseUrl;
         this.metadataCache = metadataCache;
         this.chainTemplate = chainTemplate;
+        this.asyncExecutor = asyncExecutor != null ? asyncExecutor : ForkJoinPool.commonPool();
     }
 
     @Override
@@ -54,10 +63,35 @@ public class SpiderInvocationHandler implements InvocationHandler {
                     + ". Is @SpiderGet or @SpiderPost missing?");
         }
 
-        // 每次调用创建新的上下文和链实例（链内部有游标状态，不可复用）
+        // 异步调用：返回类型为 CompletableFuture 时，提交到线程池
+        if (isCompletableFuture(method.getGenericReturnType())) {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    return doInvoke(method, args, meta);
+                } catch (Throwable t) {
+                    if (t instanceof RuntimeException) throw (RuntimeException) t;
+                    if (t instanceof Error) throw (Error) t;
+                    throw new RuntimeException(t);
+                }
+            }, asyncExecutor);
+        }
+
+        // 同步调用
+        return doInvoke(method, args, meta);
+    }
+
+    private Object doInvoke(Method method, Object[] args, MethodMetadata meta) throws Throwable {
         SpiderInvocationContext ctx = new SpiderInvocationContext(clientName, method, args, meta, baseUrl);
         SpiderFilterChain chain = new SpiderFilterChain(chainTemplate.filters());
-
         return chain.next(ctx);
+    }
+
+    /** 判断返回类型是否为 CompletableFuture。 */
+    private static boolean isCompletableFuture(Type returnType) {
+        if (returnType == CompletableFuture.class) return true;
+        if (returnType instanceof ParameterizedType) {
+            return ((ParameterizedType) returnType).getRawType() == CompletableFuture.class;
+        }
+        return returnType instanceof Class && CompletableFuture.class.isAssignableFrom((Class<?>) returnType);
     }
 }
