@@ -113,6 +113,7 @@ public class ReportController {
                     long c = stats.callCount.get();
                     cs.setSuccessRate(c > 0 ? String.format("%.1f", 100.0 * stats.successCount.get() / c) : "N/A");
                     cs.setAvgLatencyMs(c > 0 ? String.format("%.1f", stats.avgLatencyMs()) : "0");
+                    cs.setOutcomes(outcomeCompact(stats));
                     dto.getClients().put(key, cs);
                 }
             }
@@ -201,5 +202,18 @@ public class ReportController {
             catch (NumberFormatException e) { return 0; }
         }
         return 0;
+    }
+
+    /** 将最近 30 次调用结果转为紧凑字符串 "10111"，用于前端迷你趋势图。 */
+    private static String outcomeCompact(SpiderRuntime.ClientStats stats) {
+        if (stats == null) return "";
+        java.util.List<io.github.spider.core.runtime.dto.OutcomePointDto> history = stats.outcomeHistory();
+        if (history == null || history.isEmpty()) return "";
+        int from = Math.max(0, history.size() - 30);
+        StringBuilder sb = new StringBuilder();
+        for (int i = from; i < history.size(); i++) {
+            sb.append(history.get(i).isSuccess() ? '1' : '0');
+        }
+        return sb.toString();
     }
 }

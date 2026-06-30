@@ -13,7 +13,6 @@ import io.github.spider.core.metadata.DefaultMethodMetadataParser;
 import io.github.spider.core.metadata.MethodMetadata;
 import io.github.spider.core.metadata.RequestTemplate;
 import io.github.spider.core.metrics.SpiderMetrics;
-import io.github.spider.core.policy.FallbackFactory;
 import io.github.spider.core.policy.SpiderCircuitBreaker;
 import io.github.spider.core.runtime.SpiderRuntime;
 import io.github.spider.core.transport.CircuitBreakerTransport;

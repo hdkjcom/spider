@@ -58,8 +58,9 @@ class ResponseContextFilterTest {
             // 此处 ThreadLocal 已被 finally 清理
             return r;
         };
-        SpiderFilterChain outerChain = new SpiderFilterChain(
+        new SpiderFilterChain(
                 Collections.<SpiderInvocationFilter>singletonList(observer));
+        // observer.run 内部通过 chain.next 触发 ResponseContextFilter + 测试 chain
 
         // 内层 chain 只包含 ResponseContextFilter + 一个设置 response 的 filter
         // 不使用 outerChain，改为直接构造嵌套：

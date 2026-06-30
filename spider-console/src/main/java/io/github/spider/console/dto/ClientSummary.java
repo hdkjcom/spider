@@ -32,6 +32,8 @@ public class ClientSummary {
     private String successRate;
     /** 平均延迟，如 "12.3" */
     private String avgLatencyMs;
+    /** 最近调用结果的紧凑字符串（1=成功, 0=失败），前端用于迷你趋势图 */
+    private String outcomes;
 
     public String getService() { return service; }
     public void setService(String service) { this.service = service; }
@@ -61,4 +63,6 @@ public class ClientSummary {
     public void setSuccessRate(String successRate) { this.successRate = successRate; }
     public String getAvgLatencyMs() { return avgLatencyMs; }
     public void setAvgLatencyMs(String avgLatencyMs) { this.avgLatencyMs = avgLatencyMs; }
+    public String getOutcomes() { return outcomes; }
+    public void setOutcomes(String outcomes) { this.outcomes = outcomes; }
 }

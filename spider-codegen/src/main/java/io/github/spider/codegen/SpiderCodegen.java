@@ -42,6 +42,12 @@ public class SpiderCodegen {
             throw new IOException("Only OpenAPI 3.x specs are supported");
         }
 
+        // Extract info.title for @SpiderClient name
+        String apiTitle = root.has("info") && root.get("info").has("title")
+                ? root.get("info").get("title").asText()
+                : "spider-client";
+        String clientName = toKebabCase(apiTitle);
+
         // Collect all paths and schemas
         JsonNode paths = root.get("paths");
         JsonNode schemas = root.has("components") ? root.get("components").get("schemas") : null;
@@ -50,7 +56,7 @@ public class SpiderCodegen {
             throw new IOException("No paths found in OpenAPI spec");
         }
 
-        // Group operations by tag → service name
+        // Group operations by tag → service name (used for interface naming only)
         Map<String, List<OperationInfo>> services = new LinkedHashMap<>();
         Iterator<Map.Entry<String, JsonNode>> pathIt = paths.fields();
         while (pathIt.hasNext()) {
@@ -81,7 +87,7 @@ public class SpiderCodegen {
 
             File javaFile = new File(packagePath, interfaceName + ".java");
             try (PrintWriter w = new PrintWriter(new OutputStreamWriter(new FileOutputStream(javaFile), StandardCharsets.UTF_8))) {
-                writeInterface(w, serviceName, interfaceName, svc.getValue(), schemas);
+                writeInterface(w, clientName, interfaceName, svc.getValue(), schemas);
             }
         }
 
@@ -108,14 +114,14 @@ public class SpiderCodegen {
 
     // ---- Interface generation ----
 
-    private void writeInterface(PrintWriter w, String serviceName, String interfaceName,
+    private void writeInterface(PrintWriter w, String clientName, String interfaceName,
                                  List<OperationInfo> ops, JsonNode schemas) {
         w.println("package " + basePackage + ";");
         w.println();
         w.println("import io.github.spider.core.annotation.*;");
         w.println("import " + basePackage + ".dto.*;");
         w.println();
-        w.println("@SpiderClient(name = \"" + serviceName + "\", url = \"${" + serviceName + ".url}\")");
+        w.println("@SpiderClient(name = \"" + clientName + "\", url = \"\")");
         w.println("public interface " + interfaceName + " {");
         w.println();
 
@@ -137,6 +143,18 @@ public class SpiderCodegen {
         }
 
         w.println("}");
+        w.println();
+        w.println("// Usage in Spring Boot:");
+        w.println("// @SpringBootApplication");
+        w.println("// @EnableSpiderClients(basePackages = \"" + basePackage + "\")");
+        w.println("// public class Application { ... }");
+        w.println("//");
+        w.println("// Or programmatically:");
+        w.println("// SpiderClientFactory.builder()");
+        w.println("//     .transport(new OkHttpSpiderTransport())");
+        w.println("//     .decoder(new JacksonSpiderDecoder())");
+        w.println("//     .encoder(new JacksonSpiderEncoder())");
+        w.println("//     .build().create(" + interfaceName + ".class);");
     }
 
     private String annotationFor(String httpMethod) {
@@ -331,6 +349,37 @@ public class SpiderCodegen {
 
     private static String schemaNameFromRef(String ref) {
         return toClassName(ref.substring(ref.lastIndexOf('/') + 1));
+    }
+
+    /**
+     * Convert an info.title string to kebab-case for use as @SpiderClient name.
+     * E.g. "Test API" → "test-api", "UserService" → "user-service".
+     */
+    private static String toKebabCase(String name) {
+        if (name == null || name.isEmpty()) return "spider-client";
+        // Step 1: insert hyphen at camelCase boundaries (lowercase → uppercase)
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (i > 0 && Character.isUpperCase(c)
+                    && Character.isLowerCase(name.charAt(i - 1))) {
+                sb.append('-');
+            }
+            sb.append(c);
+        }
+        // Step 2: replace non-alphanumeric characters with hyphens, then lowercase
+        String result = sb.toString();
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < result.length(); i++) {
+            char c = result.charAt(i);
+            if (Character.isLetterOrDigit(c)) {
+                out.append(Character.toLowerCase(c));
+            } else {
+                out.append('-');
+            }
+        }
+        // collapse consecutive hyphens and strip leading/trailing hyphens
+        return out.toString().replaceAll("-+", "-").replaceAll("^-|-$", "");
     }
 
     private static String toClassName(String name) {

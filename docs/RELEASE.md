@@ -81,7 +81,7 @@ curl -s "https://search.maven.org/solrsearch/select?q=g:io.github.spider" | grep
 ### 版本升级
 ```bash
 # 将版本号升级到下一个 SNAPSHOT
-# 例如 0.1.0 → 0.2.0-SNAPSHOT
+# 例如 0.1.0 → 0.3.0-SNAPSHOT
 ```
 
 ### Git Tag

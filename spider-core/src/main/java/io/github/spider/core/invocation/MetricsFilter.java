@@ -10,10 +10,9 @@ import io.github.spider.core.metrics.SpiderMetrics;
  */
 public class MetricsFilter implements SpiderInvocationFilter {
 
-    private final SpiderMetrics metrics;
-
+    /** @param metrics 指标实现（当前仅作为安全网持有，指标记录已由 RetryFilter 接管） */
     public MetricsFilter(SpiderMetrics metrics) {
-        this.metrics = metrics != null ? metrics : SpiderMetrics.NOOP;
+        // 保留构造器签名以兼容 SpiderClientFactory 的链装配
     }
 
     @Override
@@ -22,7 +21,6 @@ public class MetricsFilter implements SpiderInvocationFilter {
             return chain.next(ctx);
         } catch (Throwable t) {
             // RetryFilter 已记录 failure，此处仅作为安全网
-            // 如果异常绕过了 RetryFilter（理论上不应发生），在此记录
             if (!(t instanceof Exception)) {
                 throw t;
             }
