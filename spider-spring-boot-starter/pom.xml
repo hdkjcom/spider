@@ -106,6 +106,13 @@
             <artifactId>spring-boot-actuator-autoconfigure</artifactId>
             <version>${spring-boot.version}</version>
         </dependency>
+        <!-- Spring Cloud DiscoveryClient (optional, 复用 Spring Cloud 的服务发现) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-commons</artifactId>
+            <version>3.1.5</version>
+            <optional>true</optional>
+        </dependency>
         <!-- micrometer -->
         <dependency>
             <groupId>io.micrometer</groupId>
