@@ -37,25 +37,41 @@ Spider = **Declarative Remote Call** + **Elastic Governance** + **Contract Prote
 
 ## What's It Like to Use Spider?
 
-You start with **one dependency**. You write **one annotation** on an interface. You **inject it** like any other Bean. And just like that — your HTTP calls have retries, circuit breakers, rate limits, fallbacks, metrics, and a live Dashboard.
+浩轩是一名 Java 后端开发。周三下午，产品经理又提了一个需求：对接用户服务的 API。
 
-No YAML archaeology. No "which version of Resilience4j is compatible with Spring Cloud 2021.x". No writing `try { httpClient.send(...) } catch { ... }` 47 times.
+他打开 IDEA，在 pom.xml 里加了一个依赖。写了一个接口，加了两个注解。注入到 Controller 里。跑了。
+
+**六分钟。**
+
+浩轩有点慌。他还没写 OkHttp、没配连接池、没写 try-catch、没写 JSON.parse。他甚至还没泡茶。
+
+他决定再加点东西：重试。加了个 `@Retry`。熔断。加了个 `@SpiderCircuitBreaker`。降级。写了个三行的 Fallback 类。
+
+他打开浏览器，输入 `http://localhost:8086/spider`。
+
+**一个 Dashboard 出现在他面前。** 调用次数、成功率、p50/p90/p99、最近调用趋势、熔断器状态——全在。他没部署任何监控组件。
+
+浩轩靠在椅背上，喝了一口还没泡的茶。他开始怀疑自己以前的工作量。
+
+---
 
 ```java
-// Step 1: define
-@SpiderClient(name = "user-service", url = "http://localhost:8081")
+// 浩轩写的全部代码：
+@SpiderClient(name = "user-service", url = "http://localhost:8081",
+              fallback = UserFallback.class)
 public interface UserClient {
-    @SpiderGet("/users/{id}") @Retry(maxAttempts = 3) UserDTO getUser(@Path("id") Long id);
+    @SpiderGet("/users/{id}")
+    @Retry(maxAttempts = 3)
+    UserDTO getUser(@Path("id") Long id);
 }
 
-// Step 2: inject
-@Autowired private UserClient client;
+@Autowired
+private UserClient client;
 
-// Step 3: call — that's it
-UserDTO user = client.getUser(1L);
+public UserDTO get(Long id) { return client.getUser(id); }
 ```
 
-Five minutes later you're at `http://localhost:8086/spider` staring at your call metrics wondering why you ever wrote HTTP glue code by hand.
+[菜鸟教程级文档 →](#quick-start)
 
 ## Quick Start
 

@@ -37,25 +37,41 @@ Spider = **声明式远程调用** + **弹性治理** + **契约保护** + **可
 
 ## 用 Spider 是什么体验？
 
-一个依赖，一个注解，注入即用——你的 HTTP 调用自动获得了重试、熔断、限流、降级、指标和实时 Dashboard。
+浩轩是一名 Java 后端开发。周三下午，产品经理又提了一个需求：对接用户服务的 API。
 
-不用翻 YAML 文档考古，不用研究"Resilience4j 哪个版本兼容 Spring Cloud 2021.x"，不用把 `try { httpClient.send(...) } catch { ... }` 写 47 遍。
+他打开 IDEA，在 pom.xml 里加了一个依赖。写了一个接口，加了两个注解。注入到 Controller 里。跑了。
+
+**六分钟。**
+
+浩轩有点慌。他还没写 OkHttp、没配连接池、没写 try-catch、没写 JSON.parse。他甚至还没泡茶。
+
+他决定再加点东西：重试。加了个 `@Retry`。熔断。加了个 `@SpiderCircuitBreaker`。降级。写了个三行的 Fallback 类。
+
+他打开浏览器，输入 `http://localhost:8086/spider`。
+
+**一个 Dashboard 出现在他面前。** 调用次数、成功率、p50/p90/p99、最近调用趋势、熔断器状态——全在。他没部署任何监控组件。
+
+浩轩靠在椅背上，喝了一口还没泡的茶。他开始怀疑自己以前的工作量。
+
+---
 
 ```java
-// 第一步：定义接口
-@SpiderClient(name = "user-service", url = "http://localhost:8081")
+// 浩轩写的全部代码：
+@SpiderClient(name = "user-service", url = "http://localhost:8081",
+              fallback = UserFallback.class)
 public interface UserClient {
-    @SpiderGet("/users/{id}") @Retry(maxAttempts = 3) UserDTO getUser(@Path("id") Long id);
+    @SpiderGet("/users/{id}")
+    @Retry(maxAttempts = 3)
+    UserDTO getUser(@Path("id") Long id);
 }
 
-// 第二步：注入
-@Autowired private UserClient client;
+@Autowired
+private UserClient client;
 
-// 第三步：调用——完事了
-UserDTO user = client.getUser(1L);
+public UserDTO get(Long id) { return client.getUser(id); }
 ```
 
-五分钟之后你在 `http://localhost:8086/spider` 看着调用指标，开始怀疑自己以前为什么要手写 HTTP 胶水代码。
+[菜鸟教程级文档 →](#快速开始)
 
 ## 快速开始
 
