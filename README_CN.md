@@ -8,6 +8,8 @@ Spider = **声明式远程调用** + **弹性治理** + **契约保护** + **可
 
 ![Dashboard](docs/img.png)
 
+> 🕷️ [**用 Spider 是什么体验？**](#用-spider-是什么体验) — 一个 30 秒的故事。
+
 ## 功能特性
 
 - 通过 Java 注解定义远程服务调用（`@SpiderGet`、`@SpiderPost`、`@SpiderPut`、`@SpiderDelete`）
@@ -32,6 +34,28 @@ Spider = **声明式远程调用** + **弹性治理** + **契约保护** + **可
 - 独立控制台：`/spider` 监控 Dashboard，方法级客户端汇总
 - Actuator 端点：`/actuator/spider`、`/actuator/spider/clients/{name}`，健康检查含每客户端指标
 - 核心模块零依赖 Spring，兼容 Java 8
+
+## 用 Spider 是什么体验？
+
+一个依赖，一个注解，注入即用——你的 HTTP 调用自动获得了重试、熔断、限流、降级、指标和实时 Dashboard。
+
+不用翻 YAML 文档考古，不用研究"Resilience4j 哪个版本兼容 Spring Cloud 2021.x"，不用把 `try { httpClient.send(...) } catch { ... }` 写 47 遍。
+
+```java
+// 第一步：定义接口
+@SpiderClient(name = "user-service", url = "http://localhost:8081")
+public interface UserClient {
+    @SpiderGet("/users/{id}") @Retry(maxAttempts = 3) UserDTO getUser(@Path("id") Long id);
+}
+
+// 第二步：注入
+@Autowired private UserClient client;
+
+// 第三步：调用——完事了
+UserDTO user = client.getUser(1L);
+```
+
+五分钟之后你在 `http://localhost:8086/spider` 看着调用指标，开始怀疑自己以前为什么要手写 HTTP 胶水代码。
 
 ## 快速开始
 

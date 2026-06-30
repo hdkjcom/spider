@@ -8,6 +8,8 @@ Spider = **Declarative Remote Call** + **Elastic Governance** + **Contract Prote
 
 ![Dashboard](docs/img.png)
 
+> 🕷️ [**What's it like to use Spider?**](#whats-it-like-to-use-spider) — a 30-second story.
+
 ## Features
 
 - Declarative HTTP client via Java annotations (`@SpiderGet`, `@SpiderPost`, `@SpiderPut`, `@SpiderDelete`)
@@ -32,6 +34,28 @@ Spider = **Declarative Remote Call** + **Elastic Governance** + **Contract Prote
 - Standalone Console — monitoring dashboard at `/spider`, method-level client summaries
 - Actuator endpoints — `/actuator/spider`, `/actuator/spider/clients/{name}`, health indicator with per-client stats
 - No Spring required — core modules run with plain Java 8
+
+## What's It Like to Use Spider?
+
+You start with **one dependency**. You write **one annotation** on an interface. You **inject it** like any other Bean. And just like that — your HTTP calls have retries, circuit breakers, rate limits, fallbacks, metrics, and a live Dashboard.
+
+No YAML archaeology. No "which version of Resilience4j is compatible with Spring Cloud 2021.x". No writing `try { httpClient.send(...) } catch { ... }` 47 times.
+
+```java
+// Step 1: define
+@SpiderClient(name = "user-service", url = "http://localhost:8081")
+public interface UserClient {
+    @SpiderGet("/users/{id}") @Retry(maxAttempts = 3) UserDTO getUser(@Path("id") Long id);
+}
+
+// Step 2: inject
+@Autowired private UserClient client;
+
+// Step 3: call — that's it
+UserDTO user = client.getUser(1L);
+```
+
+Five minutes later you're at `http://localhost:8086/spider` staring at your call metrics wondering why you ever wrote HTTP glue code by hand.
 
 ## Quick Start
 
