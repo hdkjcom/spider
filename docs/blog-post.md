@@ -1,66 +1,79 @@
 # 我写了一个中间件，把微服务调用的 try-catch 从 47 个减到了 0
 
-> 每一个对接过三个以上外部服务的 Java 程序员，都曾经在某个深夜问过自己：「为什么我要为每一个接口手写一模一样的重试逻辑？」
+> 说实话，这个项目本来只是我一个周三下午的突发奇想。没想到后来我真的把它写到了 1.0.0，发到了 Maven Central，还给它画了一个 Dashboard。
 
 ---
 
-## 你写过多少次这样的代码？
+## 那个让我崩溃的瞬间
 
-```java
-public UserDTO getUser(Long id) {
-    for (int i = 0; i < 3; i++) {
-        try {
-            Response resp = httpClient.get("http://user-service/users/" + id);
-            if (resp.code() == 200) return mapper.readValue(resp.body(), UserDTO.class);
-            if (resp.code() >= 400 && resp.code() < 500) break;
-        } catch (IOException e) {
-            if (i == 2) throw new RuntimeException(e);
-            sleep(i * 100);
-        }
-    }
-    return fallback();
-}
-```
+我叫浩轩，一名普通的 Java 后端开发。
 
-这段代码在你的项目里出现过多少次？
+那是 2026 年初的一个下午。产品经理在钉钉上发了三个字：「用户服务。」
 
-- 超时写死 30 秒，没人敢改
-- 重试用 `Thread.sleep` 退避，掐指一算就写了个 100ms
-- 异常 `catch (Exception e)` 一把梭
-- 熔断？「那是什么」
-- 降级？「还没上线呢，不急」
-- 监控？「有 Grafana 但我没配」
+我知道这意味着什么——对接用户服务的 API。获取用户信息、创建用户、更新头像。标准的 CRUD。
 
-然后有一天业务挂了，老板问「调用成功率多少」，你沉默了。
+我开始在心里盘算工作量：
 
-## OpenFeign 解决了一半
+1. 引入 OkHttp 依赖
+2. 配置连接池：连接超时多长？读超时多长？最大空闲连接？保活多久？——我每次都要翻 OkHttp 文档，因为我永远记不住
+3. 写一个 HttpClientUtil，封装 GET / POST / PUT / DELETE
+4. 每次调用手动拼 URL，加 query 参数，设 header
+5. 拿到 Response 后判断状态码：200 要解析，404 要打日志，500 要不要重试？
+6. 重试逻辑自己写——重试几次？退避多久？指数还是固定？POST 要不要重试？
+7. 每个接口 try-catch，异常类型越来越多，最后 `catch (Exception e)` 一锅端
+8. 老板问「调用成功率多少」——沉默，因为根本没埋点
 
-Spring Cloud OpenFeign 确实优雅地解决了 HTTP 调用的声明式写法：
+我数了一下，项目里已经有 47 个 try-catch 块。Forty-seven。
 
-```java
-@FeignClient(name = "user-service", url = "http://localhost:8081")
-public interface UserClient {
-    @GetMapping("/users/{id}")
-    UserDTO getUser(@PathVariable Long id);
-}
-```
+那天我没有写代码。我在工位上坐了一个小时，然后打开 IDEA，新建了一个项目。
 
-接口即文档，注入即调用——这很好。
+我叫它 **Spider**。
 
-但问题是：**OpenFeign 只管调用，不管治理。**
+## 我想要的东西很简单
 
-- 重试？需要额外引入 Spring Retry
-- 熔断？需要额外引入 Sentinel 或 Resilience4j
-- 限流？Feign 原生不支持
-- 降级？需要 Spring Cloud CircuitBreaker + 手动配置
-- 指标？需要 Micrometer + 自己埋点
-- 监控面板？自己搭吧
+「能不能这样——」
 
-**Feign 帮你省了 HTTP 代码，但治理那一坨还是你自己来。**
+我对着空白的 README 自言自语：
 
-## 我们想要什么？
+「我写一个接口，加几个注解。@SpiderGet 就是 GET 请求，@SpiderPost 就是 POST 请求。然后我直接 @Autowired 注入，像调本地方法一样用。」
 
-能不能这样：
+「然后，超时？@Timeout。重试？@Retry。熔断？@SpiderCircuitBreaker。降级？fallback。」
+
+「然后，我打开浏览器，一个 Dashboard 已经在那儿了——调用次数、成功率、p50、p99、熔断器状态。不用部署任何监控组件。」
+
+「然后，如果要接 Nacos 做服务发现？url 留空就行，自动走注册中心。如果要运行时调超时？在 Apollo 改个配置，不重启生效。」
+
+听起来像魔法。但在那天下午，我开始写代码了。
+
+## 故事最精彩的部分不是我写出了这个项目，而是我真的把它用在项目里了
+
+我用 Spider 对接了第一个外部服务——微信 API。
+
+六分钟。从加依赖到看到返回结果。六分钟。
+
+我甚至还没泡茶。
+
+然后我打开 `http://localhost:8086/spider`——我现在还记得那个瞬间。调用成功，Dashboard 上出现了一条绿色记录。再调一次。又一条。成功率那个数字在跳，p99 延迟那个数字在跳，迷你趋势图上那一排绿色竖条在跳。
+
+我组的后端架构并没有部署 Grafana。没有 Prometheus。没有 ELK。我什么都没装。但 Dashboard 就在那儿。
+
+我靠在椅背上，喝了一口还没泡的茶。
+
+我开始怀疑我以前的工作量。
+
+## 后来，我一个一个往回补，把该有的都补上了
+
+最开始 Spider 只是一个简单的代理工具。后来我发现，只有调用不够，得有**治理**。于是加了重试、熔断、限流、降级。
+
+后来我发现，治理逻辑如果全写在一个 Handler 里，会变成 200 行的大怪兽。于是我把它拆成了 9 个独立的过滤器——服务发现、请求构建、拦截器、降级、监控、重试、传输、解码——每个 filter 只做一件事，可插拔、可替换、可重排。
+
+后来我又发现，熔断器给了 Resilience4j 的适配，服务发现对接了 Spring Cloud DiscoveryClient，负载均衡复用了 Spring Cloud LoadBalancer。你配了 `spring.cloud.nacos.discovery.server-addr`，Spider 自动就能用——不需要再写 `spider.nacos.*`。
+
+后来我甚至加了——说出来你可能不信——**暗色模式**。因为有一次晚上加班，Dashboard 太白，晃得我眼睛疼。
+
+## Spider 现在的样子
+
+一个注解，声明式调用 + 全量治理：
 
 ```java
 @SpiderClient(name = "user-service", url = "http://localhost:8081",
@@ -72,109 +85,39 @@ public interface UserClient {
     @Timeout(2000)
     @Retry(maxAttempts = 3, backoffStrategy = EXPONENTIAL, jitter = true)
     UserDTO getUser(@Path("id") Long id);
+
+    @SpiderPost("/users")
+    UserDTO createUser(@Body CreateUserRequest req);
 }
 ```
 
-一个接口，注解声明调用方式 + 超时 + 重试 + 熔断 + 降级。注入即用。然后打开 `http://localhost:8086/spider`，Dashboard 已经在等你——调用次数、成功率、p50/p90/p99、最近调用趋势图、熔断器状态，全在。
+然后注入，调用，看一眼 Dashboard。你甚至不需要理解什么是过滤器链、什么是 SPI、什么是 ErrorCategory——你先用，这些东西自然就懂了。
 
-**没部署任何监控组件。没写一行 OkHttp 代码。**
+## 这不是什么高大上的项目
 
-这就是 [Spider](https://github.com/hdkjcom/spider)。
+Spider 没有重新发明轮子。它只是在 OkHttp、Jackson、Resilience4j、Micrometer、Nacos 这些成熟组件之上，做了一层**编排**。让它们像一个整体一样工作。
 
-## Spider 做了什么
+它的定位不是「干掉 OpenFeign」，更不是「成为 Dubbo」。它只是想解决一个很朴素的问题——
 
-Spider 是一个声明式服务调用治理中间件。它的核心思路是：
+> **为什么对接一个外部服务，研发要操心 HTTP 怎么发、JSON 怎么解、重试怎么写、熔断怎么配、监控怎么搭？这些不应该是基础的、自动化的事情吗？**
 
-> **OkHttp 负责发请求，Jackson 负责序列化，Resilience4j 负责熔断，Micrometer 负责指标——Spider 负责把它们编排到一起，变成一个注解。**
+我觉得应该是。
 
-架构上是过滤器链模型：9 个独立的 filter 按顺序执行——服务发现 → 请求构建 → 拦截器 → 降级 → 监控 → 重试 → 传输 → 解码——每一步都是可插拔可替换的。
+所以我写了 Spider。
 
-这意味着：
-- 你的 HttpTransport 可以换成 Netty 的，不用改接口
-- 你的服务发现可以换成 Consul 的，不用改接口
-- 你的熔断器可以换成 Sentinel 的，不用改接口
-- 甚至你的 JSON 库都可以换成 Gson——只要你愿意
+## 关于我
 
-**Spider 不锁定任何底层实现。**
+我是一个用 Java 8 写后端的人。Spider 从 0.1.0 到 1.0.0 用了几十个版本、170 个单元测试、数不清的深夜 debug。曾经有一个重试 bug 让我意识到——代码里所有"看起来在重试"的循环，根本就没有重新执行传输层。那个 bug 我修了一个晚上。
 
-## vs OpenFeign：不只是调用，还有治理
+但我修好了。后来也没有再出现。
 
-| | Spider | OpenFeign |
-|---|---|---|
-| 声明式接口 | ✅ | ✅ |
-| 重试 | ✅ 内置，智能跳过 4xx | 需 Spring Retry |
-| 熔断 | ✅ 内置 | 需 Sentinel/Hystrix |
-| 限流 | ✅ 内置 | ❌ |
-| 降级 | ✅ 内置，FallbackFactory | 需 Spring Cloud |
-| 负载均衡 | ✅ 内置 | 需 Ribbon/LoadBalancer |
-| Dashboard | ✅ 嵌入式，零配置 | ❌ |
-| Actuator 端点 | ✅ `/actuator/spider` | ❌ |
-| 连接池可观测 | ✅ `/actuator/spider-pool` | ❌ |
-| 动态配置 | ✅ Apollo/Nacos Config | ❌ |
-| 异步调用 | ✅ CompletableFuture | ❌ |
-| Spring Cloud 兼容 | ✅ DiscoveryClient + LoadBalancer | ✅ |
-| Java 8 | ✅ | ✅ |
+如果你也是那种"不想为每个接口写 try-catch"的人，试试 Spider。哪怕你不用，看一眼设计思路也好。
 
-## 一个真实的故事
-
-浩轩是一名 Java 开发。周三下午，PM 让他对接用户服务的 API。
-
-他加了一个依赖。写了一个接口。加了几个注解。注入到 Controller。跑了。
-
-**六分钟。** 他还没写 OkHttp，还没配连接池，还没写 try-catch，还没写 JSON.parse。他甚至还没泡茶。
-
-然后他打开 `http://localhost:8086/spider`——一个完整的 Dashboard 浮现在屏幕上。调用次数、成功率、p50/p90/p99、最近调用趋势、熔断器状态，全在。
-
-他没部署任何监控组件。
-
-浩轩靠在椅背上，喝了一口还没泡的茶。他开始怀疑自己以前的工作量。
-
-一个月后，他已经接入了 4 个微服务，配置整齐划一，Nacos 服务发现自动生效，Apollo 动态调参不用重启，OpenAPI spec 一键生成客户端代码。
-
-同事路过他的工位，看着 Dashboard 问：「这是什么监控平台？」
-
-「Spider。」浩轩说，「一个依赖，一个注解。六分钟。」
-
-## 快速开始
-
-```xml
-<dependency>
-    <groupId>io.github.hdkjcom.spider</groupId>
-    <artifactId>spider-spring-boot-starter</artifactId>
-    <version>1.0.0</version>
-</dependency>
-```
-
-```java
-@SpringBootApplication
-@EnableSpiderClients
-public class App { public static void main(String[] args) { SpringApplication.run(App.class, args); } }
-
-@SpiderClient(name = "user-service", url = "http://localhost:8081")
-public interface UserClient {
-    @SpiderGet("/users/{id}") UserDTO getUser(@Path("id") Long id);
-}
-
-@RestController
-public class Ctrl {
-    @Autowired UserClient client;
-    @GetMapping("/u/{id}") public UserDTO get(@PathVariable Long id) { return client.getUser(id); }
-}
-```
-
-访问 `http://localhost:8086/spider` 看监控。
-
-## 最后
-
-这个项目是我在业余时间写的。从最开始的一个想法——"为什么对接外部服务这么麻烦"——到 1.0.0 发版，经历了 30 多个版本迭代、170 个单元测试、无数次 bug 修复。
-
-如果你也觉得手写 HTTP 调用代码很烦，试试 Spider。
-
-**人生没有 Ctrl+Z，但永远可以 `git checkout` 到一个新的分支。真正重要的，不是你曾经在哪个分支提交过多少代码，而是最后，你把自己 merge 到了一个真正想成为的人生里。**
+人生没有 Ctrl+Z，但永远可以 `git checkout` 到一个新的分支。真正重要的，不是你曾经在哪个分支提交过多少代码，而是最后，你把自己 merge 到了一个真正想成为的人生里。
 
 ---
 
-- GitHub: [https://github.com/hdkjcom/spider](https://github.com/hdkjcom/spider)
-- Gitee: [https://gitee.com/suxuZZR/spider](https://gitee.com/suxuZZR/spider)
-- Maven Central: `io.github.hdkjcom.spider:spider-spring-boot-starter:1.0.0`
-- 文档: [https://github.com/hdkjcom/spider](https://github.com/hdkjcom/spider)
+- 🐙 **GitHub**: [https://github.com/hdkjcom/spider](https://github.com/hdkjcom/spider)
+- 🐴 **Gitee**: [https://gitee.com/suxuZZR/spider](https://gitee.com/suxuZZR/spider)
+- 📦 **Maven Central**: `io.github.hdkjcom.spider:spider-spring-boot-starter:1.0.0`
+- 📖 **新手入门**: [docs/quickstart.md](docs/quickstart.md)
