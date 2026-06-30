@@ -14,3 +14,7 @@ AGENTS.md
 docs/main.md
 RELEASE.md
 docs/optimization-plan.md
+.classpath
+.factorypath
+.project
+.settings/

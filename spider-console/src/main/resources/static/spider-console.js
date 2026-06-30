@@ -48,6 +48,7 @@ const i18n = {
     table: {
       client: '客户端',
       method: '方法',
+      sparkline: '趋势',
       calls: '调用',
       success: '成功',
       failure: '失败',
@@ -150,6 +151,7 @@ const i18n = {
     table: {
       client: 'Client',
       method: 'Method',
+      sparkline: 'Trend',
       calls: 'Calls',
       success: 'Success',
       failure: 'Failure',
@@ -384,7 +386,7 @@ function clientRows(clients) {
   }
   return `<table>
     <thead><tr>
-      <th>${t('table.client')}</th><th>${t('table.method')}</th><th class="num">${t('table.calls')}</th><th class="num">${t('table.success')}</th><th class="num">${t('table.failure')}</th>
+      <th>${t('table.client')}</th><th>${t('table.method')}</th><th>${t('table.sparkline')}</th><th class="num">${t('table.calls')}</th><th class="num">${t('table.success')}</th><th class="num">${t('table.failure')}</th>
       <th class="num">${t('table.retry')}</th><th class="num">${t('table.fallback')}</th><th class="num">${t('table.avgLatency')}</th><th class="num">${t('table.p99')}</th><th class="num">${t('table.successRate')}</th>
     </tr></thead>
     <tbody>${clients.map(client => {
@@ -392,6 +394,7 @@ function clientRows(clients) {
       return `<tr>
         <td><div class="primary-cell"><strong>${esc(client.client || '-')}</strong><span>${esc(client.service || '-')}</span></div></td>
         <td><span class="badge">${esc(client.method || '*')}</span></td>
+        <td>${sparkline(client.outcomes)}</td>
         <td class="num">${fmt(client.calls)}</td>
         <td class="num good">${fmt(client.success)}</td>
         <td class="num ${client.failure ? 'bad' : ''}">${fmt(client.failure)}</td>
@@ -489,6 +492,15 @@ function rateBar(rate) {
   const cls = value >= 99 ? '' : value >= 95 ? 'warn' : 'error';
   const label = Number.isFinite(rate) ? value.toFixed(1) + '%' : 'N/A';
   return `<div class="bar"><div class="track"><div class="fill ${cls}" style="width:${value}%"></div></div><span class="rate-badge ${value >= 99 ? 'good' : value >= 95 ? 'orange' : 'bad'}">${label}</span></div>`;
+}
+
+function sparkline(outcomes) {
+  if (!outcomes) return '<span class="badge">-</span>';
+  const bars = [];
+  for (let i = 0; i < outcomes.length; i++) {
+    bars.push(`<span class="spark-bar ${outcomes[i] === '1' ? 'ok' : 'fail'}"></span>`);
+  }
+  return `<span class="sparkline" title="${outcomes}">${bars.join('')}</span>`;
 }
 
 function parseRate(raw, calls, success) {

@@ -78,6 +78,9 @@ class SpiderCodegenTest {
         // Verify client file content
         String clientContent = new String(java.nio.file.Files.readAllBytes(clientFile.toPath()));
         assertTrue(clientContent.contains("@SpiderClient"));
+        // @SpiderClient name from info.title (kebab-case), url empty for service discovery
+        assertTrue(clientContent.contains("@SpiderClient(name = \"test-api\", url = \"\")"),
+                "@SpiderClient name should be derived from info.title 'Test API' → 'test-api', was:\n" + clientContent);
         assertTrue(clientContent.contains("@SpiderGet(\"/users/{id}\")"));
         assertTrue(clientContent.contains("@SpiderPost(\"/users\")"));
         assertTrue(clientContent.contains("User getUser(@Path(\"id\") Long id)"));
@@ -87,6 +90,13 @@ class SpiderCodegenTest {
         // 201 success response → User return type (not void)
         assertTrue(clientContent.contains("User createUser(@Body CreateUserRequest body)"),
                 "POST should resolve User return type from 201 response, was:\n" + clientContent);
+        // Spring Boot usage instructions appended
+        assertTrue(clientContent.contains("// Usage in Spring Boot:"),
+                "Generated file should contain Spring Boot usage instructions");
+        assertTrue(clientContent.contains("@EnableSpiderClients"),
+                "Usage instructions should mention @EnableSpiderClients");
+        assertTrue(clientContent.contains("SpiderClientFactory.builder()"),
+                "Usage instructions should include programmatic usage example");
     }
 
     @Test
@@ -132,6 +142,10 @@ class SpiderCodegenTest {
         File clientFile = new File(outDir, "com/example/client/UserClient.java");
         assertTrue(clientFile.exists(), "UserClient.java should be generated");
         String clientContent = new String(java.nio.file.Files.readAllBytes(clientFile.toPath()));
+
+        // @SpiderClient name from info.title "List API" → "list-api"
+        assertTrue(clientContent.contains("@SpiderClient(name = \"list-api\", url = \"\")"),
+                "@SpiderClient name should be derived from info.title 'List API' → 'list-api', was:\n" + clientContent);
 
         // Query and header parameter binding
         assertTrue(clientContent.contains("@Query(\"page\") Integer page"),
