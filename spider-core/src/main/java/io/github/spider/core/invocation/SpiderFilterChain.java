@@ -42,6 +42,20 @@ public class SpiderFilterChain {
         return null;
     }
 
+    /**
+     * 从当前游标位置创建一个新的子链，包含尚未执行的 filter。
+     *
+     * <p>本类是有状态的（游标单调递增），重试 filter 在循环中不能反复调用同一个
+     * {@code chain.next(ctx)}：第二次调用时游标已到达链尾，会直接返回 null 而不执行
+     * 传输 filter，导致重试形同虚设。重试 filter 应在每次迭代中调用本方法获取全新的
+     * 子链，从而真正重新执行下游（传输、解码等）。
+     *
+     * @return 从当前位置开始的全新链实例（游标为 0）
+     */
+    public SpiderFilterChain subChain() {
+        return new SpiderFilterChain(filters.subList(index, filters.size()));
+    }
+
     /** 返回此链中 filter 的总数。 */
     public int size() {
         return filters.size();

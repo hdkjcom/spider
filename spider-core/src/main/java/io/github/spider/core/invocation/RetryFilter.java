@@ -43,7 +43,13 @@ public class RetryFilter implements SpiderInvocationFilter {
 
         for (int i = 0; i < attempts; i++) {
             try {
-                Object result = chain.next(ctx);
+                // 每次迭代必须使用全新的子链：SpiderFilterChain 内部游标单调递增，
+                // 若复用同一个 chain，第二次调用 next() 时游标已到链尾会直接返回 null，
+                // 传输 filter 不会再次执行，重试将永远看到上一次的失败响应。
+                SpiderFilterChain attemptChain = chain.subChain();
+                // 进入重试前清空上一次的响应，避免残留状态被误判为成功
+                ctx.setResponse(null);
+                Object result = attemptChain.next(ctx);
                 // 成功
                 SpiderResponse response = ctx.response();
                 if (response != null && !response.isSuccessful()) {
