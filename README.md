@@ -25,7 +25,6 @@ Spider = **Declarative Remote Call** + **Elastic Governance** + **Contract Prote
 - **Configuration priority** — method annotation > interface annotation > Spring properties > builder > framework defaults
 - **Per-client configuration** — `spider.clients.<name>.*` in `application.yml`
 - Metrics — Micrometer integration with `error_type` tag (`spider.client.requests`, `retries`, `fallbacks`, `duration`)
-- Tracing — OpenTelemetry W3C trace-context auto-injection, query-param-safe URLs
 - Contract validation — response validation interceptor
 - Spring Boot starter — `@EnableSpiderClients`, auto-scan, `application.yml` config
 - Standalone Console — monitoring dashboard at `/spider`, method-level client summaries
@@ -148,8 +147,6 @@ public interface PayClient {
 | `spider.client.fallbacks` | Counter | client, method |
 | `spider.client.duration` | Timer | client, method |
 
-Tracing: `TracingInterceptor` auto-injects W3C trace-context headers, records `exception.type` on span errors, strips query params from URLs.
-
 ### Error Handling
 
 Spider provides 11 typed exceptions under `SpiderException` with precise `ErrorCategory`:
@@ -241,7 +238,6 @@ The invocation pipeline is a pluggable filter chain. Each governance concern (re
 | `spider-nacos` | Nacos service discovery |
 | `spider-console` | Standalone monitoring console |
 | `spider-codegen` | OpenAPI to SpiderClient generator |
-| `spider-telemetry` | OpenTelemetry tracing |
 | `spider-config` | Dynamic configuration SPI |
 | `spider-messaging` | Message queue transport SPI |
 | `spider-benchmark` | JMH benchmarks |
@@ -274,7 +270,6 @@ Requires JDK 8+, Maven 3.6+.
 | Configuration priority | Documented, enforced | Ad-hoc |
 | Per-client config | `spider.clients.<name>.*` | Per-@FeignClient properties |
 | Metrics | `spider.client.*` with error_type tag | Manual |
-| Tracing | OpenTelemetry built-in, query-safe | Sleuth/Micrometer Tracing |
 | gRPC | Supported | No |
 | Filter chain | Pluggable, reorderable filters | InvocationHandlerFactory |
 | Spring dependency | Zero (core) | Required |

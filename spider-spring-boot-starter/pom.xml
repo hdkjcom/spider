@@ -40,12 +40,6 @@
             <artifactId>spider-metrics</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- telemetry -->
-        <dependency>
-            <groupId>io.github.hdkjcom.spider</groupId>
-            <artifactId>spider-telemetry</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         <!-- resilience (circuit breaker + rate limiter) -->
         <dependency>
             <groupId>io.github.hdkjcom.spider</groupId>

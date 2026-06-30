@@ -25,7 +25,6 @@ Spider = **声明式远程调用** + **弹性治理** + **契约保护** + **可
 - **配置优先级**：方法注解 > 接口注解 > Spring 属性 > Builder > 框架默认值
 - **每客户端独立配置**：`spider.clients.<name>.*` in `application.yml`
 - 指标：Micrometer 集成，带 `error_type` 标签（`spider.client.requests`、`retries`、`fallbacks`、`duration`）
-- 链路追踪：OpenTelemetry W3C trace-context 自动注入，URL 自动去除敏感参数
 - 契约校验：响应校验拦截器
 - Spring Boot starter：`@EnableSpiderClients`，自动扫描，`application.yml` 配置
 - 独立控制台：`/spider` 监控 Dashboard，方法级客户端汇总
@@ -150,15 +149,12 @@ public interface PayClient {
 
 标签：`client`（服务名），`method`（方法名），`error_type`（异常类型）。
 
-链路追踪：`TracingInterceptor` 自动注入 W3C trace-context，span 错误记录 `exception.type`，URL 自动去除 query 参数。
-
 ### 错误处理
 
 11 种类型化异常，继承自 `SpiderException`，每种带有 `ErrorCategory`。详见 [核心概念](docs/concepts.md)。
 
 ### 控制台 Dashboard
 
-**单服务模式（默认）：** 不需要任何配置。引入 starter 后直接访问 `http://你的端口/spider`，数据直接从本地运行时读取。Dashboard 展示客户端指标、熔断器状态、最近快照和追踪状态。
 
 **多服务统一监控：** 部署中央控制台，各业务服务配置上报地址：
 
@@ -185,7 +181,6 @@ mvn exec:java -pl spider-console -Dexec.mainClass=io.github.spider.console.Spide
   -> SpiderTransport (HTTP / gRPC) -> 远程服务
 ```
 
-调用管道是一个可插拔的过滤器链。每个治理关注点（重试、熔断、限流、指标、追踪、降级）都是一个独立、可测试的过滤器，可以重新排序或替换。
 
 ### 模块一览
 
@@ -201,7 +196,6 @@ mvn exec:java -pl spider-console -Dexec.mainClass=io.github.spider.console.Spide
 | `spider-nacos` | Nacos 服务发现 |
 | `spider-console` | 独立监控控制台 |
 | `spider-codegen` | OpenAPI 代码生成器 |
-| `spider-telemetry` | OpenTelemetry 追踪 |
 | `spider-config` | 动态配置 SPI |
 | `spider-messaging` | 消息队列传输 SPI |
 | `spider-benchmark` | JMH 基准测试 |
@@ -233,7 +227,6 @@ mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.spider.demo.SpiderDemo
 | 异常体系 | 11 种类型化异常 | 仅 FeignException |
 | 过滤器链 | 可插拔，可重排 | InvocationHandlerFactory |
 | 指标 | `spider.client.*` 含 error_type 标签 | 需额外集成 |
-| 追踪 | OpenTelemetry 内置，URL 去敏 | 需 Sleuth |
 | gRPC | 支持 | 不支持 |
 | Spring 依赖 | 核心零依赖 | 强依赖 |
 | Java 版本 | 8+ | 8+ |

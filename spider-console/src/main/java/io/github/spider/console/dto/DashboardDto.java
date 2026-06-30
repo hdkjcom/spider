@@ -2,8 +2,6 @@ package io.github.spider.console.dto;
 
 import java.util.*;
 
-import io.github.spider.core.runtime.dto.ErrorEntryDto;
-
 /**
  * 仪表盘完整数据。
  */
@@ -17,9 +15,7 @@ public class DashboardDto {
     private Map<String, String> circuitBreakers = new LinkedHashMap<>();
     /** 数据点总数 */
     private int snapshotCount;
-    private List<ErrorEntryDto> recentReports = new ArrayList<>();
-    /** 链路追踪是否已启用 */
-    private boolean tracingEnabled;
+    private List<Map<String, Object>> recentReports = new ArrayList<>();
     /** 数据生成时间 */
     private Date time = new Date();
 
@@ -31,10 +27,8 @@ public class DashboardDto {
     public void setCircuitBreakers(Map<String, String> circuitBreakers) { this.circuitBreakers = circuitBreakers; }
     public int getSnapshotCount() { return snapshotCount; }
     public void setSnapshotCount(int snapshotCount) { this.snapshotCount = snapshotCount; }
-    public List<ErrorEntryDto> getRecentReports() { return recentReports; }
-    public void setRecentReports(List<ErrorEntryDto> recentReports) { this.recentReports = recentReports; }
-    public boolean isTracingEnabled() { return tracingEnabled; }
-    public void setTracingEnabled(boolean tracingEnabled) { this.tracingEnabled = tracingEnabled; }
+    public List<Map<String, Object>> getRecentReports() { return recentReports; }
+    public void setRecentReports(List<Map<String, Object>> recentReports) { this.recentReports = recentReports; }
     public Date getTime() { return time; }
     public void setTime(Date time) { this.time = time; }
 }
