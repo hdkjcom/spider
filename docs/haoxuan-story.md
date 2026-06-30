@@ -206,4 +206,8 @@ codegen.generate(new File("pay-api.json"));
 
 ---
 
+人生没有 Ctrl+Z，但永远可以 `git checkout` 到一个新的分支。真正重要的，不是你曾经在哪个分支提交过多少代码，而是最后，你把自己 `merge` 到了一个真正想成为的人生里。
+
+---
+
 *浩轩的故事到这里就结束了。你的故事可以[从这里开始](quickstart.md)。*
