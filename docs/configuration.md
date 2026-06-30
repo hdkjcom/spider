@@ -48,8 +48,17 @@
 | `backoffMillis` | long | 100 | 重试间隔（毫秒） |
 | `backoffStrategy` | enum | FIXED | FIXED 或 EXPONENTIAL |
 | `maxBackoffMillis` | long | 5000 | 指数退避上限 |
+| `jitter` | boolean | false | 是否对退避值添加 +/-50% 随机抖动，防止重试风暴 |
 | `retryOn` | Class[] | {} | 触发重试的异常类型，空=所有 IOException |
 | `ignoreStatus` | int[] | {} | 不重试的 HTTP 状态码 |
+
+开启 jitter 后实际退避为计算值的 50%~150%，适合多副本同时恢复时错峰重试：
+
+```java
+@Retry(maxAttempts = 5, backoffStrategy = BackoffStrategy.EXPONENTIAL, jitter = true)
+@SpiderGet("/users/{id}")
+UserDTO getUser(@Path("id") Long id);
+```
 
 ### @SpiderCircuitBreaker
 
@@ -140,3 +149,57 @@ long elapsed = resp.elapsedMillis();
 ```bash
 java -Dspider.banner=true -jar your-app.jar
 ```
+
+## 动态配置
+
+Spider 通过 `SpiderConfigCenter` SPI 支持配置中心（Apollo、Nacos Config 等）在运行时动态调整客户端参数，无需重启应用。
+
+### 接入方式
+
+实现 `SpiderConfigCenter` 接口并注册为 Spring Bean，starter 自动创建 `ConfigOverrideFilter` 插入过滤器链：
+
+```java
+@Component
+public class NacosConfigCenter implements SpiderConfigCenter {
+    // 从 Nacos 读取配置
+}
+```
+
+无需实现 `SpiderConfigCenter` 的模块也可直接使用 `InMemoryConfigCenter` 进行编程式更新，适用于测试或外部管理控制台推送。
+
+### 配置键命名规范
+
+| 配置键 | 类型 | 说明 |
+|---|---|---|
+| `spider.client.<name>.retry.backoff` | long | 重试退避间隔（毫秒） |
+| `spider.client.<name>.timeout` | int | 调用超时时间（毫秒） |
+
+`<name>` 为 `@SpiderClient(name = "...")` 中声明的服务名。
+
+### 覆盖优先级
+
+```
+ConfigCenter 动态值 > 方法注解 > Spring 属性 > Builder > 框架默认值
+```
+
+ConfigCenter 中未配置的 key 不影响现有行为，自动回退到下一优先级。
+
+### 无配置中心时的行为
+
+当容器中不存在 `SpiderConfigCenter` Bean 时（默认状态），`SpiderConfigAutoConfiguration` 不会创建 `ConfigOverrideFilter`，调用链路为零开销，与未引入 `spider-config` 模块时行为完全一致。
+
+## Spring Cloud LoadBalancer 集成
+
+当 classpath 中同时存在 Spring Cloud `LoadBalancerClient` 时，`SpiderLoadBalancerAutoConfiguration` 自动注册 `LoadBalancerSpiderLoadBalancer` 作为 `SpiderLoadBalancer` 实现，复用项目已有的 Spring Cloud 负载均衡策略（权重、健康检查、ZoneAware 等），无需在 Spider 中单独配置。
+
+若项目未引入 Spring Cloud LoadBalancer，Spider 回退到内置的 `RoundRobinSpiderLoadBalancer`，行为不受影响。
+
+## Spring Boot 3 兼容
+
+`spider-spring-boot-starter` 提供 `spring-boot-3` Maven profile，用于在 Spring Boot 3.x 环境中编译：
+
+```bash
+mvn compile -pl spider-spring-boot-starter -Pspring-boot-3
+```
+
+该 profile 将 `spring-boot.version` 切换为 `3.2.5`，并将 starter 模块的编译目标提升至 Java 17（`spider-core` 等核心模块保持 Java 8 兼容）。Starter 中同时避免直接依赖 `javax.annotation`，改用 `DisposableBean` 等 spring-beans 内稳定 API，确保跨 Spring Boot 主版本兼容。

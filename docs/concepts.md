@@ -93,3 +93,60 @@ public class UserFallbackFactory implements FallbackFactory<UserClient> {
     }
 }
 ```
+
+## 动态配置
+
+Spider 支持通过 `SpiderConfigCenter` SPI 接入配置中心（如 Apollo、Nacos Config），在运行时动态调整客户端参数，无需重启应用。
+
+**接入方式**：实现 `SpiderConfigCenter` 接口并注册为 Spring Bean（或通过 `SpiderClientFactory.Builder` 传入），starter 会自动创建 `ConfigOverrideFilter` 并插入过滤器链。
+
+**支持的配置键**（按 clientName 区分）：
+
+| 配置键 | 说明 |
+|---|---|
+| `spider.client.<name>.retry.backoff` | 重试退避间隔（毫秒） |
+| `spider.client.<name>.timeout` | 调用超时时间（毫秒） |
+
+**覆盖优先级**：ConfigCenter 动态值 > 方法注解 > Spring 属性 > Builder > 框架默认值。
+
+当 `SpiderConfigCenter` Bean 不在场时（默认行为），`ConfigOverrideFilter` 不会被创建，调用链路与原有行为完全一致，零影响。
+
+## 过滤器链
+
+Spider 内部使用过滤器链模型编排调用生命周期。标准过滤器按以下顺序执行：
+
+1. `ResponseContextFilter` — 响应上下文初始化
+2. `ServiceDiscoveryFilter` — 服务发现与负载均衡
+3. `RequestBuildFilter` — 请求模板构建
+4. `InterceptorFilter` — 拦截器执行
+5. `FallbackFilter` — 降级回退
+6. `MetricsFilter` — 指标采集
+7. `RetryFilter` — 重试控制
+8. `TransportFilter` — 远程传输
+9. `DecodeFilter` — 响应解码
+
+### 自定义过滤器
+
+通过 `Builder.addFilter()` 扩展点可在链首插入自定义过滤器，在标准过滤器之前执行。适用于配置覆盖、日志增强、链路追踪注入等场景：
+
+```java
+SpiderClientFactory.builder()
+    .transport(transport)
+    .decoder(decoder)
+    .addFilter(new ConfigOverrideFilter(configCenter))  // 自定义过滤器
+    .build();
+
+// 或声明为 Spring Bean，starter 自动收集所有 SpiderInvocationFilter Bean 并插入链首
+@Component
+public class CustomFilter implements SpiderInvocationFilter {
+    @Override
+    public Object filter(SpiderInvocationContext ctx, SpiderFilterChain chain) throws Throwable {
+        // 前置逻辑
+        Object result = chain.next(ctx);
+        // 后置逻辑
+        return result;
+    }
+}
+```
+
+自定义 `SpiderInvocationFilter` Spring Bean 会被 `SpiderAutoConfiguration` 自动发现并通过 `builder.addFilter()` 注入，无需额外配置。
