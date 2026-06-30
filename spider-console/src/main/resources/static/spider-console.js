@@ -316,7 +316,6 @@ function render() {
   renderGovernance(allClients, breakers);
   renderReports();
   renderBreakers(breakers);
-  renderTracing();
   renderServices(services, allClients);
   setView(state.view);
 }
@@ -346,7 +345,6 @@ function renderNav(clients, services, breakers) {
   document.getElementById('navClients').textContent = clients.length;
   document.getElementById('navReports').textContent = (state.data.recentReports || []).length;
   document.getElementById('navBreakers').textContent = Object.keys(breakers).length;
-  document.getElementById('navTracing').textContent = state.data.tracingEnabled ? 'ON' : 'OFF';
   document.getElementById('navServices').textContent = services.length;
 }
 
@@ -413,7 +411,6 @@ function renderGovernance(clients, breakers) {
   const errors = sum(clients, 'failure');
   document.getElementById('governancePanel').innerHTML = [
     stateItem(t('state.circuitBreakers'), `${Object.keys(breakers).length}`, open ? 'bad' : half ? 'orange' : 'good', open ? t('state.open', { n: open }) : half ? t('state.halfOpen', { n: half }) : t('state.allClosed')),
-    stateItem(t('state.tracing'), state.data.tracingEnabled ? 'ON' : 'OFF', state.data.tracingEnabled ? 'good' : 'orange', t('state.traceInjection')),
     stateItem(t('state.failures'), compact(errors), errors ? 'bad' : 'good', errors ? t('state.failuresReported') : t('state.noFailures')),
     stateItem(t('state.snapshots'), compact(state.data.snapshotCount || 0), '', state.data.time ? new Date(state.data.time).toLocaleString() : t('state.waitingReports'))
   ].join('');
@@ -468,15 +465,6 @@ function renderBreakers(breakers) {
     const color = status === 'OPEN' ? 'bad' : status === 'HALF_OPEN' ? 'orange' : 'good';
     return stateItem(esc(name), esc(status), color, status === 'OPEN' ? t('state.requestsBlocked') : status === 'HALF_OPEN' ? t('state.recoveryProbe') : t('state.requestsAllowed'));
   }).join('')}</div>`;
-}
-
-function renderTracing() {
-  document.getElementById('tracingPanel').innerHTML = stateItem(
-    'Tracing',
-    state.data.tracingEnabled ? 'ON' : 'OFF',
-    state.data.tracingEnabled ? 'good' : 'orange',
-    state.data.tracingEnabled ? t('state.tracingEnabled') : t('state.tracingMissing')
-  );
 }
 
 function renderServices(services, clients) {
