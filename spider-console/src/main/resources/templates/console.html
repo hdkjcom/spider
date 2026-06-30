@@ -21,7 +21,6 @@
     <button class="nav-button" data-view="clients"><span data-i18n="nav.clients">客户端</span> <span class="nav-kpi" id="navClients">0</span></button>
     <button class="nav-button" data-view="reports"><span data-i18n="nav.reports">最近上报</span> <span class="nav-kpi" id="navReports">0</span></button>
     <button class="nav-button" data-view="breakers"><span data-i18n="nav.breakers">熔断器</span> <span class="nav-kpi" id="navBreakers">0</span></button>
-    <button class="nav-button" data-view="tracing"><span data-i18n="nav.tracing">链路追踪</span> <span class="nav-kpi" id="navTracing">-</span></button>
     <div class="nav-section" data-i18n="section.resources">资源</div>
     <button class="nav-button" data-view="services"><span data-i18n="nav.services">服务</span> <span class="nav-kpi" id="navServices">0</span></button>
   </aside>
@@ -38,7 +37,6 @@
           <option value="clients" data-i18n="nav.clients">客户端</option>
           <option value="reports" data-i18n="nav.reports">最近上报</option>
           <option value="breakers" data-i18n="nav.breakers">熔断器</option>
-          <option value="tracing" data-i18n="nav.tracing">链路追踪</option>
           <option value="services" data-i18n="nav.services">服务</option>
         </select>
         <div class="status"><span class="dot" id="healthDot"></span><span id="healthText">连接中</span></div>
@@ -117,13 +115,6 @@
         <section class="panel">
           <div class="panel-head"><div><div class="panel-title" data-i18n="panel.breakers">熔断器状态</div><div class="panel-note" id="breakerNote">-</div></div></div>
           <div id="breakerPanel"></div>
-        </section>
-      </div>
-
-      <div id="view-tracing" hidden>
-        <section class="panel">
-          <div class="panel-head"><div><div class="panel-title" data-i18n="panel.tracing">链路追踪</div><div class="panel-note" data-i18n="panel.tracingNote">W3C trace-context 注入状态</div></div></div>
-          <div class="state-grid" id="tracingPanel"></div>
         </section>
       </div>
 
