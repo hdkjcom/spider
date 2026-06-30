@@ -1,21 +1,24 @@
 package io.github.spider.spring.boot.autoconfigure;
 
 import io.github.spider.core.reporter.SpiderReporter;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 
-import javax.annotation.PreDestroy;
-
 /**
  * Spider 控制台上报自动配置类，在配置了 {@code spider.console.url} 时激活。
  * 应用启动后就绪后自动向 Spider Console 上报服务信息。
+ *
+ * <p>实现 {@link DisposableBean} 而不是 {@code @PreDestroy}，以兼容 Spring Boot 2
+ * (javax.annotation) 与 Spring Boot 3 (jakarta.annotation)。{@code DisposableBean}
+ * 来自 spring-beans，在两个版本中包名稳定。
  */
 @Configuration
 @ConditionalOnProperty(prefix = "spider.console", name = "url")
-public class SpiderReporterAutoConfiguration {
+public class SpiderReporterAutoConfiguration implements DisposableBean {
 
     @Value("${spider.console.url}")
     private String consoleUrl;
@@ -32,8 +35,8 @@ public class SpiderReporterAutoConfiguration {
     }
 
     /** 应用关闭时停止上报，释放线程资源。 */
-    @PreDestroy
-    public void stopReporter() {
+    @Override
+    public void destroy() {
         SpiderReporter.stop();
     }
 }
