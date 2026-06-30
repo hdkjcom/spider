@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spider Console</title>
+<script>
+  (function () {
+    var saved = localStorage.getItem('spider-console-theme');
+    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.dataset.theme = theme;
+  })();
+</script>
 <link rel="stylesheet" href="/spider-console.css?v=0.2.0">
 </head>
 <body>
@@ -42,6 +49,7 @@
         <div class="status"><span class="dot" id="healthDot"></span><span id="healthText">连接中</span></div>
         <div class="status"><span data-i18n="label.refresh">刷新</span> <strong id="lastRefresh">-</strong></div>
         <button class="btn" id="langToggle" type="button">English</button>
+        <button class="btn" id="themeToggle" type="button">深色</button>
         <button class="btn" id="refreshBtn" type="button" data-i18n="action.refresh">刷新</button>
       </div>
     </header>

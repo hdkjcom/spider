@@ -98,7 +98,8 @@ const i18n = {
       recoveryProbe: '正在探测恢复',
       requestsAllowed: '允许请求通过'
     },
-    langToggle: 'English'
+    langToggle: 'English',
+    themeToggle: { light: '深色', dark: '浅色' }
   },
   en: {
     nav: {
@@ -199,7 +200,8 @@ const i18n = {
       recoveryProbe: 'Recovery probe in progress',
       requestsAllowed: 'Requests are allowed'
     },
-    langToggle: '中文'
+    langToggle: '中文',
+    themeToggle: { light: 'Dark', dark: 'Light' }
   }
 };
 
@@ -209,7 +211,9 @@ const state = {
   service: '',
   query: '',
   loading: false,
-  lang: localStorage.getItem('spider.console.lang') || 'zh'
+  lang: localStorage.getItem('spider.console.lang') || 'zh',
+  theme: localStorage.getItem('spider-console-theme') ||
+    (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light')
 };
 
 document.getElementById('refreshBtn').addEventListener('click', load);
@@ -218,6 +222,11 @@ document.getElementById('langToggle').addEventListener('click', () => {
   localStorage.setItem('spider.console.lang', state.lang);
   applyLanguage();
   render();
+});
+document.getElementById('themeToggle').addEventListener('click', () => {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('spider-console-theme', state.theme);
+  applyTheme();
 });
 document.getElementById('searchBox').addEventListener('input', e => {
   state.query = e.target.value.trim().toLowerCase();
@@ -248,6 +257,12 @@ function applyLanguage() {
   });
   document.getElementById('langToggle').textContent = t('langToggle');
   setView(state.view);
+}
+
+function applyTheme() {
+  document.documentElement.dataset.theme = state.theme;
+  const labels = i18n[state.lang].themeToggle;
+  document.getElementById('themeToggle').textContent = labels[state.theme];
 }
 
 async function load() {
@@ -504,5 +519,6 @@ function esc(value) {
 }
 
 applyLanguage();
+applyTheme();
 load();
 setInterval(load, 5000);

@@ -81,6 +81,66 @@ class SpiderCodegenTest {
         assertTrue(clientContent.contains("@SpiderGet(\"/users/{id}\")"));
         assertTrue(clientContent.contains("@SpiderPost(\"/users\")"));
         assertTrue(clientContent.contains("User getUser(@Path(\"id\") Long id)"));
+        // Request body → @Body parameter with DTO type
+        assertTrue(clientContent.contains("@Body CreateUserRequest body"),
+                "POST body should generate @Body CreateUserRequest parameter, was:\n" + clientContent);
+        // 201 success response → User return type (not void)
+        assertTrue(clientContent.contains("User createUser(@Body CreateUserRequest body)"),
+                "POST should resolve User return type from 201 response, was:\n" + clientContent);
+    }
+
+    @Test
+    void testQueryHeaderAndArrayReturn(@TempDir Path tempDir) throws Exception {
+        File specFile = tempDir.resolve("openapi-list.json").toFile();
+        try (PrintWriter w = new PrintWriter(new FileWriter(specFile))) {
+            w.println("{");
+            w.println("  \"openapi\": \"3.0.0\",");
+            w.println("  \"info\": { \"title\": \"List API\", \"version\": \"1.0\" },");
+            w.println("  \"paths\": {");
+            w.println("    \"/users\": {");
+            w.println("      \"get\": {");
+            w.println("        \"operationId\": \"listUsers\",");
+            w.println("        \"tags\": [\"user\"],");
+            w.println("        \"parameters\": [");
+            w.println("          { \"name\": \"page\", \"in\": \"query\", \"schema\": { \"type\": \"integer\" } },");
+            w.println("          { \"name\": \"X-Trace-Id\", \"in\": \"header\", \"schema\": { \"type\": \"string\" } }");
+            w.println("        ],");
+            w.println("        \"responses\": {");
+            w.println("          \"200\": { \"description\": \"OK\", \"content\": {");
+            w.println("            \"application/json\": { \"schema\": { \"type\": \"array\", \"items\":");
+            w.println("              { \"$ref\": \"#/components/schemas/User\" } } }");
+            w.println("          }}}}}},");
+            w.println("  \"components\": {");
+            w.println("    \"schemas\": {");
+            w.println("      \"User\": { \"type\": \"object\", \"properties\": {");
+            w.println("        \"id\": { \"type\": \"integer\" },");
+            w.println("        \"name\": { \"type\": \"string\" }");
+            w.println("      } }");
+            w.println("    }");
+            w.println("  }");
+            w.println("}");
+        }
+
+        File outDir = tempDir.resolve("generated").toFile();
+        outDir.mkdirs();
+
+        SpiderCodegen codegen = new SpiderCodegen()
+                .basePackage("com.example.client")
+                .outputDir(outDir.getAbsolutePath());
+        codegen.generate(specFile);
+
+        File clientFile = new File(outDir, "com/example/client/UserClient.java");
+        assertTrue(clientFile.exists(), "UserClient.java should be generated");
+        String clientContent = new String(java.nio.file.Files.readAllBytes(clientFile.toPath()));
+
+        // Query and header parameter binding
+        assertTrue(clientContent.contains("@Query(\"page\") Integer page"),
+                "query param 'page' should bind with @Query, was:\n" + clientContent);
+        assertTrue(clientContent.contains("@Header(\"X-Trace-Id\") String X_Trace_Id"),
+                "header param should bind with @Header (name sanitized to valid Java id), was:\n" + clientContent);
+        // Array response → User[] return type
+        assertTrue(clientContent.contains("User[] listUsers("),
+                "array response should map to User[] return type, was:\n" + clientContent);
     }
 
     @Test
