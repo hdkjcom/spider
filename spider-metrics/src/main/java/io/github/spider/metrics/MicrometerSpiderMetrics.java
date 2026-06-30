@@ -20,7 +20,8 @@ import java.util.function.Supplier;
  *   <li>{@code spider.client.requests} — total invocations (tag: outcome=success|failure)</li>
  *   <li>{@code spider.client.retries} — retry attempts (tag: error_type)</li>
  *   <li>{@code spider.client.fallbacks} — fallback activations</li>
- *   <li>{@code spider.client.duration} — invocation duration histogram</li>
+ *   <li>{@code spider.client.duration} — invocation duration histogram (tag: outcome=success;
+ *       only successful invocations record duration, since failure path has no timing input)</li>
  * </ul>
  *
  * <p>Tags (low-cardinality only):
@@ -47,8 +48,9 @@ public class MicrometerSpiderMetrics implements SpiderMetrics {
                 .tag("outcome", "success")
                 .description("Successful Spider invocations")
                 .register(registry)).increment();
-        getOrCreate(timers, key(clientName, methodName), () -> Timer.builder("spider.client.duration")
+        getOrCreate(timers, key(clientName, methodName, "success"), () -> Timer.builder("spider.client.duration")
                 .tag("client", clientName).tag("method", methodName)
+                .tag("outcome", "success")
                 .description("Spider invocation duration")
                 .register(registry)).record(response.elapsedMillis(), TimeUnit.MILLISECONDS);
     }

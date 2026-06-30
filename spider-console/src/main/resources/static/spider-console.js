@@ -62,8 +62,8 @@ const i18n = {
       failures: '失败'
     },
     empty: {
-      noReportTitle: '暂无上报数据',
-      noReportText: '服务通过 SpiderReporter 上报后会显示调用、延迟和错误信息。',
+      noReportTitle: '暂无调用数据',
+      noReportText: '发起一次 Spider 调用后即可看到调用、延迟和错误信息。',
       noRecentTitle: '暂无最近上报',
       noRecentText: '客户端上报指标快照后会显示在这里。',
       noBreakerTitle: '暂无熔断器数据',
@@ -163,8 +163,8 @@ const i18n = {
       failures: 'Failures'
     },
     empty: {
-      noReportTitle: 'No report data',
-      noReportText: 'Client call metrics will appear after services report to the console.',
+      noReportTitle: 'No call data yet',
+      noReportText: 'Make a Spider call and the call, latency, and error data will appear here.',
       noRecentTitle: 'No recent reports',
       noRecentText: 'Metric snapshots will appear after SpiderReporter posts data.',
       noBreakerTitle: 'No breaker data',
@@ -473,7 +473,7 @@ function rateBar(rate) {
   const value = Number.isFinite(rate) ? Math.max(0, Math.min(100, rate)) : 0;
   const cls = value >= 99 ? '' : value >= 95 ? 'warn' : 'error';
   const label = Number.isFinite(rate) ? value.toFixed(1) + '%' : 'N/A';
-  return `<div class="bar"><div class="track"><div class="fill ${cls}" style="width:${value}%"></div></div><span>${label}</span></div>`;
+  return `<div class="bar"><div class="track"><div class="fill ${cls}" style="width:${value}%"></div></div><span class="rate-badge ${value >= 99 ? 'good' : value >= 95 ? 'orange' : 'bad'}">${label}</span></div>`;
 }
 
 function parseRate(raw, calls, success) {
