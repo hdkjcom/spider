@@ -5,7 +5,6 @@ const i18n = {
       clients: '客户端',
       reports: '最近上报',
       breakers: '熔断器',
-      tracing: '链路追踪',
       services: '服务'
     },
     section: { monitor: '监控', resources: '资源' },
@@ -17,7 +16,6 @@ const i18n = {
       clients: ['客户端', '按服务、客户端和方法查看调用质量'],
       reports: ['最近上报', '服务上报的最新指标快照'],
       breakers: ['熔断器', '熔断器实例与当前状态'],
-      tracing: ['链路追踪', 'Trace 上下文注入状态'],
       services: ['服务', '已向控制台上报的服务']
     },
     panel: {
@@ -28,8 +26,6 @@ const i18n = {
       recentReportsNote: '最新 8 条指标快照',
       clientDetails: '客户端明细',
       breakers: '熔断器状态',
-      tracing: '链路追踪',
-      tracingNote: 'W3C trace-context 注入状态',
       services: '已上报服务'
     },
     health: { connecting: '连接中', refreshing: '刷新中', running: '运行中', disconnected: '连接异常' },
@@ -90,21 +86,17 @@ const i18n = {
     },
     state: {
       circuitBreakers: '熔断器',
-      tracing: '链路追踪',
       failures: '错误累计',
       snapshots: '数据快照',
       allClosed: '全部关闭或未激活',
       open: '{n} 个 OPEN',
       halfOpen: '{n} 个 HALF_OPEN',
-      traceInjection: 'trace-context 注入',
       failuresReported: '存在失败调用',
       noFailures: '当前无失败',
       waitingReports: '等待上报',
       requestsBlocked: '请求被熔断保护',
       recoveryProbe: '正在探测恢复',
-      requestsAllowed: '允许请求通过',
-      tracingEnabled: '客户端已上报 tracing 启用状态',
-      tracingMissing: '尚未收到 tracing 启用上报'
+      requestsAllowed: '允许请求通过'
     },
     langToggle: 'English'
   },
@@ -114,7 +106,6 @@ const i18n = {
       clients: 'Clients',
       reports: 'Reports',
       breakers: 'Breakers',
-      tracing: 'Tracing',
       services: 'Services'
     },
     section: { monitor: 'Monitor', resources: 'Resources' },
@@ -126,7 +117,6 @@ const i18n = {
       clients: ['Clients', 'Call quality by service, client, and method'],
       reports: ['Recent Reports', 'Latest metric snapshots reported by services'],
       breakers: ['Circuit Breakers', 'Breaker instances and current state'],
-      tracing: ['Tracing', 'Trace-context injection status'],
       services: ['Services', 'Services that have reported to the console']
     },
     panel: {
@@ -137,8 +127,6 @@ const i18n = {
       recentReportsNote: 'Latest 8 metric snapshots',
       clientDetails: 'Client Details',
       breakers: 'Circuit Breakers',
-      tracing: 'Tracing',
-      tracingNote: 'W3C trace-context injection status',
       services: 'Reported Services'
     },
     health: { connecting: 'Connecting', refreshing: 'Refreshing', running: 'Running', disconnected: 'Disconnected' },
@@ -199,28 +187,24 @@ const i18n = {
     },
     state: {
       circuitBreakers: 'Circuit Breakers',
-      tracing: 'Tracing',
       failures: 'Failures',
       snapshots: 'Snapshots',
       allClosed: 'All closed or inactive',
       open: '{n} OPEN',
       halfOpen: '{n} HALF_OPEN',
-      traceInjection: 'trace-context injection',
       failuresReported: 'Failures reported',
       noFailures: 'No failures',
       waitingReports: 'Waiting for reports',
       requestsBlocked: 'Requests are blocked',
       recoveryProbe: 'Recovery probe in progress',
-      requestsAllowed: 'Requests are allowed',
-      tracingEnabled: 'Tracing has been reported as enabled',
-      tracingMissing: 'No tracing-enabled report received'
+      requestsAllowed: 'Requests are allowed'
     },
     langToggle: '中文'
   }
 };
 
 const state = {
-  data: { clients: {}, services: [], circuitBreakers: {}, snapshotCount: 0, recentReports: [], tracingEnabled: false },
+  data: { clients: {}, services: [], circuitBreakers: {}, snapshotCount: 0, recentReports: [] },
   view: 'overview',
   service: '',
   query: '',
@@ -298,7 +282,8 @@ function setView(view) {
   document.querySelectorAll('.tab').forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
   document.getElementById('mobileView').value = view;
   Object.keys(i18n[state.lang].title).forEach(key => {
-    document.getElementById('view-' + key).hidden = key !== view;
+    const el = document.getElementById('view-' + key);
+    if (el) el.hidden = key !== view;
   });
   document.getElementById('pageTitle').textContent = t(`title.${view}`)[0];
   document.getElementById('pageSubtitle').textContent = t(`title.${view}`)[1];
