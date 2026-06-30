@@ -133,15 +133,19 @@ public class RetryFilter implements SpiderInvocationFilter {
     }
 
     private long computeBackoff(SpiderInvocationContext ctx, int attempt) {
+        // 动态配置覆盖（由 ConfigOverrideFilter 注入）
+        Object cfgBackoff = ctx.attribute("config.backoffMillis");
+        long baseBackoff = (cfgBackoff instanceof Number) ? ((Number) cfgBackoff).longValue()
+                : ctx.methodMetadata().backoffMillis();
         long delay;
         if ("EXPONENTIAL".equalsIgnoreCase(ctx.methodMetadata().backoffStrategy())) {
-            delay = ctx.methodMetadata().backoffMillis() * (1L << (attempt - 1));
+            delay = baseBackoff * (1L << (attempt - 1));
             long max = ctx.methodMetadata().maxBackoffMillis();
             if (max > 0) {
                 delay = Math.min(delay, max);
             }
         } else {
-            delay = ctx.methodMetadata().backoffMillis();
+            delay = baseBackoff;
         }
         if (ctx.methodMetadata().isJitter()) {
             // ±50% 抖动：实际退避为计算值的 50%~150%，避免下游恢复瞬间被重试风暴打爆

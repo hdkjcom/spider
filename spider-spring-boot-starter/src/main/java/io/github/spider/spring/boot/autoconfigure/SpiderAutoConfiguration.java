@@ -3,6 +3,7 @@ package io.github.spider.spring.boot.autoconfigure;
 import io.github.spider.core.client.SpiderClientFactory;
 import io.github.spider.core.codec.SpiderDecoder;
 import io.github.spider.core.codec.SpiderEncoder;
+import io.github.spider.core.invocation.SpiderInvocationFilter;
 import io.github.spider.core.interceptor.SpiderInterceptor;
 import io.github.spider.core.metrics.SpiderMetrics;
 import io.github.spider.core.transport.SpiderTransport;
@@ -100,8 +101,8 @@ public class SpiderAutoConfiguration {
     public SpiderClientFactory spiderClientFactory(
             SpiderTransport transport, SpiderDecoder decoder, SpiderEncoder encoder,
             List<SpiderInterceptor> interceptors, SpiderMetrics metrics,
-            SpiderProperties props) {
-        // 将 SpiderProperties.ClientConfig 转换为通用 Map 格式（保持 core 无 Spring 依赖）
+            SpiderProperties props,
+            List<SpiderInvocationFilter> customFilters) {
         Map<String, Map<String, Object>> clientConfigs = new HashMap<>();
         if (props.getClients() != null) {
             for (Map.Entry<String, SpiderProperties.ClientConfig> entry : props.getClients().entrySet()) {
@@ -114,13 +115,18 @@ public class SpiderAutoConfiguration {
                 clientConfigs.put(entry.getKey(), cfg);
             }
         }
-        return SpiderClientFactory.builder()
+        SpiderClientFactory.Builder builder = SpiderClientFactory.builder()
                 .transport(transport).decoder(decoder).encoder(encoder)
                 .interceptors(interceptors).metrics(metrics)
                 .defaultTimeout(props.getDefaultTimeout())
                 .defaultRetry(props.getDefaultRetry().getMaxAttempts(),
                         props.getDefaultRetry().getBackoffMillis())
-                .clientConfigs(clientConfigs)
-                .build();
+                .clientConfigs(clientConfigs);
+        if (customFilters != null) {
+            for (SpiderInvocationFilter f : customFilters) {
+                builder.addFilter(f);
+            }
+        }
+        return builder.build();
     }
 }

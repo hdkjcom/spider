@@ -94,6 +94,7 @@ public class SpiderClientFactory {
     private final int defaultRetryMaxAttempts;
     private final long defaultRetryBackoffMillis;
     private final Map<String, Map<String, Object>> clientConfigs;
+    private final List<SpiderInvocationFilter> extraFilters;
 
     private SpiderClientFactory(Builder builder) {
         this.transport = builder.transport;
@@ -109,6 +110,7 @@ public class SpiderClientFactory {
         this.defaultRetryMaxAttempts = builder.defaultRetryMaxAttempts;
         this.defaultRetryBackoffMillis = builder.defaultRetryBackoffMillis;
         this.clientConfigs = builder.clientConfigs != null ? builder.clientConfigs : Collections.<String, Map<String, Object>>emptyMap();
+        this.extraFilters = new ArrayList<>(builder.extraFilters);
     }
 
     @SuppressWarnings("unchecked")
@@ -170,8 +172,8 @@ public class SpiderClientFactory {
 
         RequestTemplate template = new RequestTemplate(encoder);
 
-        // 构建 filter chain
-        List<SpiderInvocationFilter> filters = new ArrayList<>();
+        // 构建 filter chain（自定义过滤器在链首，先于标准过滤器执行）
+        List<SpiderInvocationFilter> filters = new ArrayList<>(this.extraFilters);
         filters.add(new ResponseContextFilter());
         filters.add(new ServiceDiscoveryFilter(serviceDiscovery, loadBalancer));
         filters.add(new RequestBuildFilter(template));
@@ -224,6 +226,7 @@ public class SpiderClientFactory {
         private int defaultRetryMaxAttempts = 1;
         private long defaultRetryBackoffMillis = 100;
         private Map<String, Map<String, Object>> clientConfigs;
+        private List<SpiderInvocationFilter> extraFilters = new ArrayList<>();
 
         public Builder transport(SpiderTransport t) { this.transport = t; return this; }
         public Builder decoder(SpiderDecoder d) { this.decoder = d; return this; }
@@ -243,6 +246,8 @@ public class SpiderClientFactory {
         public Builder clientConfigs(Map<String, Map<String, Object>> configs) {
             this.clientConfigs = configs; return this;
         }
+        /** 插入自定义过滤器到链首（在标准过滤器之前执行）。可用于 ConfigCenter 覆盖等扩展。 */
+        public Builder addFilter(SpiderInvocationFilter filter) { this.extraFilters.add(filter); return this; }
 
         public SpiderClientFactory build() {
             if (transport == null) throw new SpiderConfigurationException("transport is required");
