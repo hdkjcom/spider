@@ -6,6 +6,8 @@ Declarative Service Invocation Governance Middleware for Java Microservices.
 
 Spider = **Declarative Remote Call** + **Elastic Governance** + **Contract Protection** + **Observability**
 
+![Dashboard](docs/img.png)
+
 ## Features
 
 - Declarative HTTP client via Java annotations (`@SpiderGet`, `@SpiderPost`, `@SpiderPut`, `@SpiderDelete`)

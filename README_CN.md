@@ -6,6 +6,8 @@
 
 Spider = **声明式远程调用** + **弹性治理** + **契约保护** + **可观测性**
 
+![Dashboard](docs/img.png)
+
 ## 功能特性
 
 - 通过 Java 注解定义远程服务调用（`@SpiderGet`、`@SpiderPost`、`@SpiderPut`、`@SpiderDelete`）
