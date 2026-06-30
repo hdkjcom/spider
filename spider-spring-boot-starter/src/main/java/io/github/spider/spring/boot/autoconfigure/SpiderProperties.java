@@ -102,6 +102,16 @@ public class SpiderProperties {
         public long getWriteTimeout() { return writeTimeout; }
         /** 设置写超时（毫秒）。 */
         public void setWriteTimeout(long writeTimeout) { this.writeTimeout = writeTimeout; }
+
+        /** 连接池最大空闲连接数（OkHttp 默认 5）。 */
+        private int maxIdleConnections = 5;
+        /** 连接保活时长（分钟，OkHttp 默认 5）。 */
+        private int keepAliveMinutes = 5;
+
+        public int getMaxIdleConnections() { return maxIdleConnections; }
+        public void setMaxIdleConnections(int v) { this.maxIdleConnections = v; }
+        public int getKeepAliveMinutes() { return keepAliveMinutes; }
+        public void setKeepAliveMinutes(int v) { this.keepAliveMinutes = v; }
     }
 
     /**

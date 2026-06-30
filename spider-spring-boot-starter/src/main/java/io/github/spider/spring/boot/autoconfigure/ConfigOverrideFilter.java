@@ -34,6 +34,11 @@ public class ConfigOverrideFilter implements SpiderInvocationFilter {
             try { ctx.setAttribute("config.backoffMillis", Long.parseLong(backoff)); }
             catch (NumberFormatException ignored) {}
         }
+        String maxAttempts = configCenter.get(prefix + "retry.maxAttempts", null);
+        if (maxAttempts != null) {
+            try { ctx.setAttribute("config.maxAttempts", Integer.parseInt(maxAttempts)); }
+            catch (NumberFormatException ignored) {}
+        }
         String timeout = configCenter.get(prefix + "timeout", null);
         if (timeout != null) {
             try { ctx.setAttribute("config.timeout", Integer.parseInt(timeout)); }

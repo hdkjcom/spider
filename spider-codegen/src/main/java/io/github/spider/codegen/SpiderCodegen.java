@@ -2,12 +2,16 @@ package io.github.spider.codegen;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.github.spider.core.annotation.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -349,6 +353,90 @@ public class SpiderCodegen {
 
     private static String schemaNameFromRef(String ref) {
         return toClassName(ref.substring(ref.lastIndexOf('/') + 1));
+    }
+
+    /**
+     * 从 Spider 注解接口反向生成 OpenAPI 3.0 JSON，写入指定的 PrintWriter。
+     */
+    public void generateFromInterface(Class<?> clientInterface, PrintWriter out) throws IOException {
+        SpiderClient clientAnn = clientInterface.getAnnotation(SpiderClient.class);
+        if (clientAnn == null) {
+            throw new IOException(clientInterface.getName() + " is not annotated with @SpiderClient");
+        }
+        ObjectNode root = mapper.createObjectNode();
+        root.put("openapi", "3.0.0");
+        ObjectNode info = root.putObject("info");
+        info.put("title", clientAnn.name());
+        info.put("version", "1.0.0");
+
+        ObjectNode paths = root.putObject("paths");
+        ObjectNode schemas = root.putObject("components").putObject("schemas");
+
+        for (java.lang.reflect.Method m : clientInterface.getDeclaredMethods()) {
+            String httpMethod = null;
+            String path = null;
+            if (m.isAnnotationPresent(SpiderGet.class)) { httpMethod = "get"; path = m.getAnnotation(SpiderGet.class).value(); }
+            else if (m.isAnnotationPresent(SpiderPost.class)) { httpMethod = "post"; path = m.getAnnotation(SpiderPost.class).value(); }
+            else if (m.isAnnotationPresent(SpiderPut.class)) { httpMethod = "put"; path = m.getAnnotation(SpiderPut.class).value(); }
+            else if (m.isAnnotationPresent(SpiderDelete.class)) { httpMethod = "delete"; path = m.getAnnotation(SpiderDelete.class).value(); }
+            if (httpMethod == null) continue;
+
+            if (!paths.has(path)) paths.set(path, mapper.createObjectNode());
+            ObjectNode op = ((ObjectNode) paths.get(path)).putObject(httpMethod);
+            op.put("operationId", m.getName());
+
+            ArrayNode params = mapper.createArrayNode();
+            for (int i = 0; i < m.getParameterCount(); i++) {
+                java.lang.reflect.Parameter p = m.getParameters()[i];
+                if (p.isAnnotationPresent(io.github.spider.core.annotation.Path.class)) {
+                    ObjectNode param = params.addObject();
+                    param.put("name", p.getAnnotation(io.github.spider.core.annotation.Path.class).value());
+                    param.put("in", "path");
+                    param.put("required", true);
+                    param.putObject("schema").put("type", javaType(p.getType()));
+                } else if (p.isAnnotationPresent(io.github.spider.core.annotation.Query.class)) {
+                    ObjectNode param = params.addObject();
+                    param.put("name", p.getAnnotation(io.github.spider.core.annotation.Query.class).value());
+                    param.put("in", "query");
+                    param.putObject("schema").put("type", javaType(p.getType()));
+                } else if (p.isAnnotationPresent(io.github.spider.core.annotation.Body.class)) {
+                    String ref = addSchema(schemas, p.getType());
+                    op.putObject("requestBody").put("required", true)
+                            .putObject("content").putObject("application/json")
+                            .putObject("schema").put("$ref", ref);
+                }
+            }
+            if (params.size() > 0) op.set("parameters", params);
+
+            String ref = addSchema(schemas, m.getReturnType());
+            op.putObject("responses").putObject("200")
+                    .put("description", "OK")
+                    .putObject("content").putObject("application/json")
+                    .putObject("schema").put("$ref", ref);
+        }
+
+        mapper.writerWithDefaultPrettyPrinter().writeValue(out, root);
+    }
+
+    private String addSchema(ObjectNode schemas, Class<?> type) {
+        if (type == void.class || type == Void.class) return "#/components/schemas/void";
+        String name = type.getSimpleName();
+        if (schemas.has(name)) return "#/components/schemas/" + name;
+        ObjectNode schema = schemas.putObject(name);
+        schema.put("type", "object");
+        ObjectNode props = schema.putObject("properties");
+        for (java.lang.reflect.Field f : type.getDeclaredFields()) {
+            props.putObject(f.getName()).put("type", javaType(f.getType()));
+        }
+        return "#/components/schemas/" + name;
+    }
+
+    private String javaType(Class<?> c) {
+        if (c == String.class) return "string";
+        if (c == Integer.class || c == int.class || c == Long.class || c == long.class) return "integer";
+        if (c == Double.class || c == double.class || c == Float.class || c == float.class) return "number";
+        if (c == Boolean.class || c == boolean.class) return "boolean";
+        return "string";
     }
 
     /**

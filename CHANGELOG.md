@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 (2026-06-25)
+## 1.0.0 (2026-06-25)
 
 First Maven Central release.
 

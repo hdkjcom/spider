@@ -172,6 +172,7 @@ public class NacosConfigCenter implements SpiderConfigCenter {
 | 配置键 | 类型 | 说明 |
 |---|---|---|
 | `spider.client.<name>.retry.backoff` | long | 重试退避间隔（毫秒） |
+| `spider.client.<name>.retry.maxAttempts` | int | 最大重试次数（含首次） |
 | `spider.client.<name>.timeout` | int | 调用超时时间（毫秒） |
 
 `<name>` 为 `@SpiderClient(name = "...")` 中声明的服务名。

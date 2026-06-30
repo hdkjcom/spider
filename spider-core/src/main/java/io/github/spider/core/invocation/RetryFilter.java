@@ -39,7 +39,11 @@ public class RetryFilter implements SpiderInvocationFilter {
 
     @Override
     public Object filter(SpiderInvocationContext ctx, SpiderFilterChain chain) throws Throwable {
-        int attempts = ctx.methodMetadata().maxAttempts();
+        // 动态配置覆盖最大重试次数（由 ConfigOverrideFilter 注入）
+        Object cfgAttempts = ctx.attribute("config.maxAttempts");
+        int attempts = (cfgAttempts instanceof Number) ? ((Number) cfgAttempts).intValue()
+                : ctx.methodMetadata().maxAttempts();
+        if (attempts < 1) attempts = ctx.methodMetadata().maxAttempts();
         Exception lastException = null;
 
         for (int i = 0; i < attempts; i++) {
