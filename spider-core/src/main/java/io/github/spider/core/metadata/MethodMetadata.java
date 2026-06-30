@@ -21,6 +21,7 @@ public class MethodMetadata {
     private long backoffMillis = 100;
     private String backoffStrategy = "FIXED";
     private long maxBackoffMillis = 5000;
+    private boolean jitter = false;
     private Set<Class<? extends Throwable>> retryOn = new HashSet<>();
     private Set<Integer> ignoreStatus = new HashSet<>();
     private Type returnType;
@@ -36,6 +37,7 @@ public class MethodMetadata {
     public MethodMetadata backoffMillis(long backoffMillis) { this.backoffMillis = backoffMillis; return this; }
     public MethodMetadata backoffStrategy(String backoffStrategy) { this.backoffStrategy = backoffStrategy; return this; }
     public MethodMetadata maxBackoffMillis(long maxBackoffMillis) { this.maxBackoffMillis = maxBackoffMillis; return this; }
+    public MethodMetadata jitter(boolean jitter) { this.jitter = jitter; return this; }
     public MethodMetadata addRetryOn(Class<? extends Throwable> ex) { this.retryOn.add(ex); return this; }
     public MethodMetadata addIgnoreStatus(int status) { this.ignoreStatus.add(status); return this; }
     public MethodMetadata returnType(Type returnType) { this.returnType = returnType; return this; }
@@ -55,6 +57,7 @@ public class MethodMetadata {
     public long backoffMillis() { return backoffMillis; }
     public String backoffStrategy() { return backoffStrategy; }
     public long maxBackoffMillis() { return maxBackoffMillis; }
+    public boolean isJitter() { return jitter; }
     public Set<Class<? extends Throwable>> retryOn() { return retryOn; }
     public Set<Integer> ignoreStatus() { return ignoreStatus; }
     public Type returnType() { return returnType; }
