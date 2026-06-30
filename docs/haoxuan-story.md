@@ -112,6 +112,8 @@ public class UserFallback implements UserClient {
 
 一个完整的 Dashboard 出现在他面前：
 
+![Spider Dashboard](img.png)
+
 | 服务概览 | 客户端指标 | 熔断器状态 |
 |---|---|---|
 | 调用 12 次 | wechat-api: 调用 5 次，成功率 100% | wechat-api: CLOSED |
