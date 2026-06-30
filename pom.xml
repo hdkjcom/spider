@@ -43,7 +43,6 @@
         <module>spider-console</module>
         <module>spider-codegen</module>
         <module>spider-benchmark</module>
-        <module>spider-telemetry</module>
         <module>spider-config</module>
         <module>spider-messaging</module>
         <module>spider-spring-boot-starter</module>

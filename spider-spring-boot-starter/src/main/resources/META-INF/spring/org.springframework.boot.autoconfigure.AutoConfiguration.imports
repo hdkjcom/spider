@@ -1,6 +1,5 @@
 io.github.spider.spring.boot.autoconfigure.SpiderAutoConfiguration
 io.github.spider.spring.boot.autoconfigure.SpiderMetricsAutoConfiguration
-io.github.spider.spring.boot.autoconfigure.SpiderTracingAutoConfiguration
 io.github.spider.spring.boot.autoconfigure.SpiderResilienceAutoConfiguration
 io.github.spider.spring.boot.autoconfigure.SpiderNacosAutoConfiguration
 io.github.spider.spring.boot.autoconfigure.SpiderContractAutoConfiguration

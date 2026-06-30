@@ -56,9 +56,9 @@ public class RetryFilter implements SpiderInvocationFilter {
                             "HTTP " + sc + " for " + ctx.request().fullUrl());
                 }
                 metrics.recordSuccess(ctx.clientName(), ctx.method().getName(), ctx.request(), response);
-                SpiderRuntime.getInstance().recordSuccess(ctx.clientName());
+                SpiderRuntime.getInstance().recordSuccess(ctx.clientName(), ctx.methodMetadata().httpMethod());
                 if (response != null) {
-                    SpiderRuntime.getInstance().recordLatency(ctx.clientName(), response.elapsedMillis());
+                    SpiderRuntime.getInstance().recordLatency(ctx.clientName(), ctx.methodMetadata().httpMethod(), response.elapsedMillis());
                 }
                 log.debug("{} {} 调用成功 ({}ms)", ctx.clientName(), ctx.request().fullUrl(),
                         response != null ? response.elapsedMillis() : 0);
@@ -114,7 +114,7 @@ public class RetryFilter implements SpiderInvocationFilter {
 
         // 所有重试已耗尽
         metrics.recordFailure(ctx.clientName(), ctx.method().getName(), ctx.request(), lastException);
-        SpiderRuntime.getInstance().recordFailure(ctx.clientName());
+        SpiderRuntime.getInstance().recordFailure(ctx.clientName(), ctx.methodMetadata().httpMethod());
         SpiderRuntime.getInstance().recordError(ctx.clientName(), ctx.method().getName(),
                 lastException != null ? lastException.getMessage() : "unknown");
         log.warn("{} {} 调用失败，重试{}次后放弃: {}", ctx.clientName(), ctx.request().fullUrl(),

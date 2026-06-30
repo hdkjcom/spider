@@ -18,6 +18,8 @@ public class SpiderRuntime {
     public static SpiderRuntime getInstance() { return INSTANCE; }
 
     private final Map<String, ClientStats> statsMap = new ConcurrentHashMap<>();
+    /** 方法级统计：clientName -> methodName -> ClientStats */
+    private final Map<String, Map<String, ClientStats>> methodStatsMap = new ConcurrentHashMap<>();
     private final Map<String, SpiderCircuitBreaker> circuitBreakers = new ConcurrentHashMap<>();
     private final AtomicLong startTime = new AtomicLong(System.currentTimeMillis());
     private final ConcurrentLinkedQueue<ErrorEntry> recentErrors = new ConcurrentLinkedQueue<>();
@@ -27,17 +29,37 @@ public class SpiderRuntime {
     private SpiderRuntime() {}
 
     public void recordSuccess(String clientName) {
+        recordSuccess(clientName, "*");
+    }
+
+    /** 记录一次成功调用（含方法名）。 */
+    public void recordSuccess(String clientName, String methodName) {
         ClientStats s = statsMap.computeIfAbsent(clientName, ClientStats::new);
         s.successCount.incrementAndGet();
         s.callCount.incrementAndGet();
         s.addOutcome(true);
+        ClientStats ms = methodStatsMap.computeIfAbsent(clientName, k -> new ConcurrentHashMap<>())
+                .computeIfAbsent(methodName, k -> new ClientStats(clientName + "#" + k));
+        ms.successCount.incrementAndGet();
+        ms.callCount.incrementAndGet();
+        ms.addOutcome(true);
     }
 
     public void recordFailure(String clientName) {
+        recordFailure(clientName, "*");
+    }
+
+    /** 记录一次失败调用（含方法名）。 */
+    public void recordFailure(String clientName, String methodName) {
         ClientStats s = statsMap.computeIfAbsent(clientName, ClientStats::new);
         s.failureCount.incrementAndGet();
         s.callCount.incrementAndGet();
         s.addOutcome(false);
+        ClientStats ms = methodStatsMap.computeIfAbsent(clientName, k -> new ConcurrentHashMap<>())
+                .computeIfAbsent(methodName, k -> new ClientStats(clientName + "#" + k));
+        ms.failureCount.incrementAndGet();
+        ms.callCount.incrementAndGet();
+        ms.addOutcome(false);
     }
 
     public void recordRetry(String clientName) {
@@ -49,10 +71,18 @@ public class SpiderRuntime {
     }
 
     public void recordLatency(String clientName, long millis) {
+        recordLatency(clientName, "*", millis);
+    }
+
+    /** 记录延迟（含方法名）。 */
+    public void recordLatency(String clientName, String methodName, long millis) {
         ClientStats s = statsMap.computeIfAbsent(clientName, ClientStats::new);
         s.totalLatencyMs.addAndGet(millis);
-        s.callCount.incrementAndGet();
         s.addLatency(millis);
+        ClientStats ms = methodStatsMap.computeIfAbsent(clientName, k -> new ConcurrentHashMap<>())
+                .computeIfAbsent(methodName, k -> new ClientStats(clientName + "#" + k));
+        ms.totalLatencyMs.addAndGet(millis);
+        ms.addLatency(millis);
     }
 
     public void recordError(String clientName, String methodName, String message) {
@@ -73,6 +103,8 @@ public class SpiderRuntime {
     public long uptimeMillis() { return System.currentTimeMillis() - startTime.get(); }
     public Set<String> clientNames() { return statsMap.keySet(); }
     public ClientStats stats(String clientName) { return statsMap.get(clientName); }
+    /** 获取指定客户端下所有方法的统计信息。 */
+    public Map<String, ClientStats> methodStats(String clientName) { return methodStatsMap.get(clientName); }
 
     public Map<String, SpiderCircuitBreaker.State> circuitBreakerStates() {
         Map<String, SpiderCircuitBreaker.State> states = new LinkedHashMap<>();

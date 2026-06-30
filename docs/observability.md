@@ -13,39 +13,6 @@
 
 **error_type 取值**：`SpiderHttpClientException`、`SpiderHttpServerException`、`SpiderIOException`、`SpiderCircuitBreakerOpenException`、`SpiderRateLimitException` 等。
 
-## 链路追踪
-
-引入 starter 后自动激活（传递依赖 `spider-telemetry`），无需配置。
-
-### Span 属性
-
-| 属性 | 说明 |
-|---|---|
-| `http.method` | GET / POST / PUT / DELETE |
-| `http.url` | 请求 URL（已去除 query 参数，不泄露敏感信息） |
-| `http.status_code` | 响应 HTTP 状态码 |
-| `spider.protocol` | http |
-| `error` | 调用是否失败 |
-| `exception.type` | 异常类型名（仅失败时） |
-
-### Span 名称
-
-`GET /users/{id}` — HTTP 方法 + 路径模板。
-
-### W3C Trace-Context
-
-自动向请求头注入 `traceparent`，下游服务可继续链路。
-
-### 示例
-
-```text
-订单服务 (span)
-  └── GET /sns/jscode2session (span)
-       ├── http.status_code: 200
-       ├── duration: 24ms
-       └── spider.protocol: http
-```
-
 ## 控制台 Dashboard
 
 ### 单服务模式（默认）
@@ -56,7 +23,6 @@
 - 客户端列表和指标
 - 熔断器状态
 - 最近调用快照
-- 追踪状态
 
 数据从本地 `SpiderRuntime` 实时读取，不走上报链路。
 
