@@ -91,6 +91,8 @@ public interface PayClient {
 
 访问 `http://localhost:8086/spider` 查看 Dashboard。
 
+> 启动 banner 默认关闭。如需查看，加 JVM 参数 `-Dspider.banner=true`。
+
 ## 下一步
 
 - [核心概念](concepts.md)
