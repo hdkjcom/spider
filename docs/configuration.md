@@ -128,3 +128,15 @@ String traceId = resp.headers().get("X-Trace-Id").get(0);
 int httpStatus = resp.statusCode();
 long elapsed = resp.elapsedMillis();
 ```
+
+## 系统属性
+
+以下选项通过 JVM 系统属性（`-D` 参数）控制，不通过 `application.yml`：
+
+| 属性 | 默认值 | 说明 |
+| --- | --- | --- |
+| `spider.banner` | `false` | 是否在启动时打印 Spider banner。默认关闭以避免日志刷屏；如需查看，设置 `-Dspider.banner=true`。 |
+
+```bash
+java -Dspider.banner=true -jar your-app.jar
+```
