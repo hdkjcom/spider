@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 重试 filter：在重试循环中执行剩余链，支持退避和异常类型分类。
@@ -132,12 +133,21 @@ public class RetryFilter implements SpiderInvocationFilter {
     }
 
     private long computeBackoff(SpiderInvocationContext ctx, int attempt) {
+        long delay;
         if ("EXPONENTIAL".equalsIgnoreCase(ctx.methodMetadata().backoffStrategy())) {
-            long delay = ctx.methodMetadata().backoffMillis() * (1L << (attempt - 1));
+            delay = ctx.methodMetadata().backoffMillis() * (1L << (attempt - 1));
             long max = ctx.methodMetadata().maxBackoffMillis();
-            return max > 0 ? Math.min(delay, max) : delay;
+            if (max > 0) {
+                delay = Math.min(delay, max);
+            }
+        } else {
+            delay = ctx.methodMetadata().backoffMillis();
         }
-        return ctx.methodMetadata().backoffMillis();
+        if (ctx.methodMetadata().isJitter()) {
+            // ±50% 抖动：实际退避为计算值的 50%~150%，避免下游恢复瞬间被重试风暴打爆
+            delay = (long) (delay * (0.5 + ThreadLocalRandom.current().nextDouble()));
+        }
+        return delay;
     }
 
     private void sleepBackoff(SpiderInvocationContext ctx, int attempt) {
