@@ -32,8 +32,28 @@ class MicrometerSpiderMetricsTest {
         double totalTime = registry.get("spider.client.duration")
                 .tag("client", "test-client")
                 .tag("method", "getUser")
+                .tag("outcome", "success")
                 .timer().totalTime(TimeUnit.MILLISECONDS);
         assertTrue(totalTime >= 42);
+    }
+
+    @Test
+    void testDurationTimerHasOutcomeSuccessTag() {
+        SpiderResponse response = new SpiderResponse().statusCode(200).elapsedMillis(15);
+
+        metrics.recordSuccess("test-client", "getUser", new SpiderRequest(), response);
+
+        // duration Timer must carry outcome=success so success vs failure latency can be told apart
+        assertEquals("success", registry.get("spider.client.duration")
+                .tag("client", "test-client")
+                .tag("method", "getUser")
+                .timer().getId().getTag("outcome"));
+
+        // outcome=success must be the only outcome series for duration so far (failure path records no duration)
+        assertEquals(1, registry.get("spider.client.duration")
+                .tag("client", "test-client")
+                .tag("method", "getUser")
+                .timers().size());
     }
 
     @Test
