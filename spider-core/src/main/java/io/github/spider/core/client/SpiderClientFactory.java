@@ -64,6 +64,9 @@ public class SpiderClientFactory {
     static { printBanner(); }
 
     private static void printBanner() {
+        // Banner is off by default to avoid log noise.
+        // Enable explicitly with -Dspider.banner=true
+        if (!Boolean.getBoolean("spider.banner")) return;
         if (bannerPrinted) return;
         bannerPrinted = true;
         try (java.io.InputStream in = SpiderClientFactory.class.getClassLoader()

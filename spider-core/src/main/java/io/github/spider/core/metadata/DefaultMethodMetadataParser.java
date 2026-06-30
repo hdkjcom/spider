@@ -76,7 +76,8 @@ public class DefaultMethodMetadataParser implements MethodMetadataParser {
             meta.maxAttempts(retryAnn.maxAttempts())
                 .backoffMillis(retryAnn.backoffMillis())
                 .backoffStrategy(retryAnn.backoffStrategy().name())
-                .maxBackoffMillis(retryAnn.maxBackoffMillis());
+                .maxBackoffMillis(retryAnn.maxBackoffMillis())
+                .jitter(retryAnn.jitter());
             for (Class<? extends Throwable> ex : retryAnn.retryOn()) {
                 meta.addRetryOn(ex);
             }

@@ -26,6 +26,12 @@ public @interface Retry {
     /** Maximum backoff in milliseconds (only for EXPONENTIAL). 0 = no cap. */
     long maxBackoffMillis() default 5000;
 
+    /**
+     * 是否对退避值添加 ±50% 随机抖动（jitter），防止下游恢复瞬间被重试风暴打爆。
+     * 启用后实际退避为计算值的 50%~150%。
+     */
+    boolean jitter() default false;
+
     /** Exception types that trigger a retry. Empty = all I/O exceptions. */
     Class<? extends Throwable>[] retryOn() default {};
 
