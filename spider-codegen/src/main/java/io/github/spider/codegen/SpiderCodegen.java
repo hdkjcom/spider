@@ -150,24 +150,66 @@ public class SpiderCodegen {
     }
 
     private String resolveReturnType(OperationInfo op, JsonNode schemas) {
-        JsonNode ok = op.response("200");
+        // OpenAPI permits 200, 201, 202 etc. as success responses; pick the
+        // first 2xx response that declares a JSON schema.
+        JsonNode ok = firstSuccessResponse(op);
         if (ok != null && ok.has("content")) {
-            JsonNode json = ok.get("content").get("application/json");
-            if (json != null && json.has("schema")) {
-                JsonNode schema = json.get("schema");
+            JsonNode schema = extractJsonSchema(ok.get("content"));
+            if (schema != null) {
                 if (schema.has("$ref")) {
                     return schemaNameFromRef(schema.get("$ref").asText());
                 }
-                if ("array".equals(schema.has("type") ? schema.get("type").asText() : "")) {
+                String type = schema.has("type") ? schema.get("type").asText() : "";
+                if ("array".equals(type)) {
                     JsonNode items = schema.get("items");
-                    if (items.has("$ref")) {
+                    if (items != null && items.has("$ref")) {
                         return schemaNameFromRef(items.get("$ref").asText()) + "[]";
                     }
+                    // primitive arrays: keep Object[] to stay Java-8 safe without guessing wrappers
                     return "Object[]";
                 }
+                if ("string".equals(type)) return "String";
+                if ("integer".equals(type)) return "Integer";
+                if ("number".equals(type)) return "Double";
+                if ("boolean".equals(type)) return "Boolean";
+                if ("object".equals(type)) return "java.util.Map<String, Object>";
             }
         }
         return "void";
+    }
+
+    /**
+     * Find the first 2xx response declared on the operation (200, 201, 202, ...).
+     */
+    private JsonNode firstSuccessResponse(OperationInfo op) {
+        JsonNode responses = op.rawOp.has("responses") ? op.rawOp.get("responses") : null;
+        if (responses == null) return null;
+        // Prefer 200 explicitly, then any other 2xx in declaration order.
+        JsonNode explicit = responses.get("200");
+        if (explicit != null) return explicit;
+        Iterator<Map.Entry<String, JsonNode>> it = responses.fields();
+        while (it.hasNext()) {
+            Map.Entry<String, JsonNode> e = it.next();
+            String code = e.getKey();
+            if (code.length() == 3 && code.startsWith("2")) {
+                return e.getValue();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Pull the JSON schema node from a content map, tolerating missing or
+     * wildcard media types. Falls back to the first available entry.
+     */
+    private JsonNode extractJsonSchema(JsonNode content) {
+        if (content == null) return null;
+        JsonNode json = content.get("application/json");
+        if (json == null) json = content.get("*/*");
+        if (json == null && content.size() > 0) {
+            json = content.iterator().next();
+        }
+        return (json != null && json.has("schema")) ? json.get("schema") : null;
     }
 
     private List<String> resolveParams(OperationInfo op, JsonNode schemas) {
@@ -177,28 +219,28 @@ public class SpiderCodegen {
             for (JsonNode param : op.rawOp.get("parameters")) {
                 String in = param.get("in").asText();
                 String name = param.get("name").asText();
+                String varName = sanitizeIdentifier(name);
                 String type = paramType(param);
                 switch (in) {
                     case "path":
-                        params.add("@Path(\"" + name + "\") " + type + " " + name);
+                        params.add("@Path(\"" + name + "\") " + type + " " + varName);
                         break;
                     case "query":
-                        params.add("@Query(\"" + name + "\") " + type + " " + name);
+                        params.add("@Query(\"" + name + "\") " + type + " " + varName);
                         break;
                     case "header":
-                        params.add("@Header(\"" + name + "\") " + type + " " + name);
+                        params.add("@Header(\"" + name + "\") " + type + " " + varName);
                         break;
                 }
             }
         }
-        // Request body
+        // Request body — @Body parameter
         JsonNode body = op.requestBody();
-        if (body != null) {
-            JsonNode json = body.get("content").get("application/json");
-            if (json != null && json.has("schema")) {
-                JsonNode schema = json.get("schema");
-                if (schema.has("$ref")) {
-                    String typeName = schemaNameFromRef(schema.get("$ref").asText());
+        if (body != null && body.has("content")) {
+            JsonNode schema = extractJsonSchema(body.get("content"));
+            if (schema != null) {
+                String typeName = bodyTypeName(schema);
+                if (typeName != null) {
                     params.add("@Body " + typeName + " body");
                 }
             }
@@ -206,8 +248,31 @@ public class SpiderCodegen {
         return params;
     }
 
-    private String paramType(JsonNode param) {
-        JsonNode schema = param.has("schema") ? param.get("schema") : param;
+    /**
+     * Resolve a Java type name for a request body schema. Returns null when the
+     * schema is something we should not turn into a @Body parameter (e.g. empty).
+     */
+    private String bodyTypeName(JsonNode schema) {
+        if (schema.has("$ref")) {
+            return schemaNameFromRef(schema.get("$ref").asText());
+        }
+        String type = schema.has("type") ? schema.get("type").asText() : "";
+        if ("object".equals(type)) return "java.util.Map<String, Object>";
+        if ("array".equals(type)) {
+            JsonNode items = schema.get("items");
+            if (items != null && items.has("$ref")) {
+                return "java.util.List<" + schemaNameFromRef(items.get("$ref").asText()) + ">";
+            }
+            return "java.util.List<Object>";
+        }
+        if ("string".equals(type)) return "String";
+        if ("integer".equals(type)) return "Integer";
+        if ("number".equals(type)) return "Double";
+        if ("boolean".equals(type)) return "Boolean";
+        return "Object";
+    }
+
+    private String paramType(JsonNode param) {        JsonNode schema = param.has("schema") ? param.get("schema") : param;
         if (schema.has("$ref")) return schemaNameFromRef(schema.get("$ref").asText());
         String type = schema.has("type") ? schema.get("type").asText() : "string";
         switch (type) {
@@ -277,6 +342,30 @@ public class SpiderCodegen {
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * Convert an OpenAPI parameter name (which may contain '-', '.', or other
+     * characters illegal in a Java identifier) into a valid Java variable name.
+     * Non-identifier characters collapse to underscores; a leading digit is
+     * prefixed with an underscore.
+     */
+    private static String sanitizeIdentifier(String name) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (i == 0 && Character.isDigit(c)) {
+                sb.append('_');
+            }
+            if (Character.isJavaIdentifierPart(c)) {
+                sb.append(c);
+            } else {
+                sb.append('_');
+            }
+        }
+        if (sb.length() == 0) return "_";
+        // collapse repeated underscores for readability
+        return sb.toString().replaceAll("_+", "_");
     }
 
     // ---- Inner types ----
