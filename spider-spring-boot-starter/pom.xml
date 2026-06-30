@@ -113,6 +113,13 @@
             <version>3.1.5</version>
             <optional>true</optional>
         </dependency>
+        <!-- Spring Cloud LoadBalancer (optional, 复用 Spring Cloud 的负载均衡策略) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-loadbalancer</artifactId>
+            <version>3.1.5</version>
+            <optional>true</optional>
+        </dependency>
         <!-- micrometer -->
         <dependency>
             <groupId>io.micrometer</groupId>
@@ -133,7 +140,23 @@
             <id>spring-boot-3</id>
             <properties>
                 <spring-boot.version>3.2.5</spring-boot.version>
+                <!-- Spring Boot 3.2 ships Java 17 bytecode (class version 61).
+                     The starter must compile against Java 17 in this profile.
+                     spider-core and other modules stay on Java 8. -->
+                <spider.starter.java.version>17</spider.starter.java.version>
             </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <source>${spider.starter.java.version}</source>
+                            <target>${spider.starter.java.version}</target>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 </project>
