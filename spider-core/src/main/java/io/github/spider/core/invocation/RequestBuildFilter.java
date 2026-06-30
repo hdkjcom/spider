@@ -18,6 +18,11 @@ public class RequestBuildFilter implements SpiderInvocationFilter {
     public Object filter(SpiderInvocationContext ctx, SpiderFilterChain chain) throws Throwable {
         SpiderRequest request = requestTemplate.build(
                 ctx.methodMetadata(), ctx.args(), ctx.resolvedBaseUrl());
+        // 动态配置覆盖超时（由 ConfigOverrideFilter 注入）
+        Object cfgTimeout = ctx.attribute("config.timeout");
+        if (cfgTimeout instanceof Number) {
+            request.timeoutMillis(((Number) cfgTimeout).intValue());
+        }
         ctx.setRequest(request);
         return chain.next(ctx);
     }
