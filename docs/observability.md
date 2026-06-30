@@ -52,4 +52,11 @@ mvn exec:java -pl spider-console -Dexec.mainClass=io.github.spider.console.Spide
 | `GET /actuator/spider` | 运行时摘要（活跃客户端数、总调用次数） |
 | `GET /actuator/spider/clients` | 所有客户端详情 + 熔断器状态 + 最近错误 |
 | `GET /actuator/spider/clients/{name}` | 单个客户端：QPS、成功率、p50/p90/p99 |
+| `GET /actuator/spider-pool` | OkHttp 连接池状态：空闲/总连接数、最大空闲、保活时长 |
 | `GET /actuator/health` | 健康状态（含熔断器状态、每客户端指标） |
+
+`/actuator/spider-pool` 仅在 classpath 包含 Spring Boot Actuator 和 OkHttp 时自动注册。返回字段包括 `idleConnections`、`totalConnections`、`allocatedConnections`、`maxIdleConnections`、`keepAliveDurationMillis` 等，兼容 OkHttp 4.9.x 和 4.12+ 版本。
+
+## 暗色模式
+
+Dashboard 控制台支持浅色/暗色主题切换。页面首次加载时自动跟随系统偏好（`prefers-color-scheme`），也可通过右上角按钮手动切换，偏好保存在 `localStorage` 中跨会话持久化。CSS 变量通过 `[data-theme="dark"]` 选择器切换，覆盖背景、文字、边框、徽章等全部颜色 token。

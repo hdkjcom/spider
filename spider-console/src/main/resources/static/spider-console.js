@@ -21,7 +21,7 @@ const i18n = {
     panel: {
       clientHealth: '客户端健康度',
       governance: '治理状态',
-      governanceNote: '熔断、追踪与上报状态',
+      governanceNote: '熔断与上报状态',
       recentReports: '最近上报',
       recentReportsNote: '最新 8 条指标快照',
       clientDetails: '客户端明细',
@@ -123,7 +123,7 @@ const i18n = {
     panel: {
       clientHealth: 'Client Health',
       governance: 'Governance Status',
-      governanceNote: 'Circuit breakers, tracing, and reports',
+      governanceNote: 'Circuit breakers and reports',
       recentReports: 'Recent Reports',
       recentReportsNote: 'Latest 8 metric snapshots',
       clientDetails: 'Client Details',
