@@ -44,32 +44,16 @@ public class DefaultMethodMetadataParser implements MethodMetadataParser {
 
         MethodMetadata meta = new MethodMetadata();
 
-        String[] staticHeaders = {};
         if (getAnn != null) {
             meta.httpMethod("GET").pathTemplate(getAnn.value());
-            staticHeaders = getAnn.headers();
         } else if (postAnn != null) {
             meta.httpMethod("POST").pathTemplate(postAnn.value());
-            staticHeaders = postAnn.headers();
         } else if (putAnn != null) {
             meta.httpMethod("PUT").pathTemplate(putAnn.value());
-            staticHeaders = putAnn.headers();
         } else if (streamAnn != null) {
             meta.httpMethod("GET").pathTemplate(streamAnn.value());
-            staticHeaders = streamAnn.headers();
         } else {
             meta.httpMethod("DELETE").pathTemplate(deleteAnn.value());
-            staticHeaders = deleteAnn.headers();
-        }
-
-        // 解析静态请求头，格式 "key: value"
-        for (String h : staticHeaders) {
-            int colon = h.indexOf(':');
-            if (colon > 0) {
-                String key = h.substring(0, colon).trim();
-                String value = h.substring(colon + 1).trim();
-                if (!key.isEmpty()) meta.addStaticHeader(key, value);
-            }
         }
 
         // ── 超时：方法注解 > 接口注解 > Builder 默认值 > 框架默认值(-1=不限制) ──
