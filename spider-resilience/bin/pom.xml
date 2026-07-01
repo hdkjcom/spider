@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.hdkjcom.spider</groupId>
+        <artifactId>spider</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>spider-resilience</artifactId>
+    <name>Spider Resilience</name>
+    <description>Resilience4j-based circuit breaker for Spider.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.hdkjcom.spider</groupId>
+            <artifactId>spider-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Resilience4j 1.7.x: last version supporting Java 8 -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-circuitbreaker</artifactId>
+            <version>1.7.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-ratelimiter</artifactId>
+            <version>1.7.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+        </dependency>
+    </dependencies>
+</project>

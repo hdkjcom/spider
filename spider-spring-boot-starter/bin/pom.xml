@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.hdkjcom.spider</groupId>
+        <artifactId>spider</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>spider-spring-boot-starter</artifactId>
+    <name>Spider Spring Boot Starter</name>
+    <description>Spring Boot auto-configuration for Spider.</description>
+
+    <properties>
+        <spring-boot.version>2.7.18</spring-boot.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.hdkjcom.spider</groupId>
+            <artifactId>spider-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.hdkjcom.spider</groupId>
+            <artifactId>spider-http</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.hdkjcom.spider</groupId>
+            <artifactId>spider-jackson</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- metrics -->
+        <dependency>
+            <groupId>io.github.hdkjcom.spider</groupId>
+            <artifactId>spider-metrics</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- resilience (circuit breaker + rate limiter) -->
+        <dependency>
+            <groupId>io.github.hdkjcom.spider</groupId>
+            <artifactId>spider-resilience</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- contract -->
+        <dependency>
+            <groupId>io.github.hdkjcom.spider</groupId>
+            <artifactId>spider-contract</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- gRPC -->
+        <dependency>
+            <groupId>io.github.hdkjcom.spider</groupId>
+            <artifactId>spider-grpc</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Nacos -->
+        <dependency>
+            <groupId>io.github.hdkjcom.spider</groupId>
+            <artifactId>spider-nacos</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- config -->
+        <dependency>
+            <groupId>io.github.hdkjcom.spider</groupId>
+            <artifactId>spider-config</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- messaging -->
+        <dependency>
+            <groupId>io.github.hdkjcom.spider</groupId>
+            <artifactId>spider-messaging</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- codegen -->
+        <dependency>
+            <groupId>io.github.hdkjcom.spider</groupId>
+            <artifactId>spider-codegen</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- console -->
+        <dependency>
+            <groupId>io.github.hdkjcom.spider</groupId>
+            <artifactId>spider-console</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <version>${spring-boot.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <version>${spring-boot.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <!-- actuator support -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-actuator-autoconfigure</artifactId>
+            <version>${spring-boot.version}</version>
+        </dependency>
+        <!-- Spring Cloud DiscoveryClient (optional, 复用 Spring Cloud 的服务发现) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-commons</artifactId>
+            <version>3.1.5</version>
+            <optional>true</optional>
+        </dependency>
+        <!-- Spring Cloud LoadBalancer (optional, 复用 Spring Cloud 的负载均衡策略) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-loadbalancer</artifactId>
+            <version>3.1.5</version>
+            <optional>true</optional>
+        </dependency>
+        <!-- micrometer -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <version>1.10.12</version>
+        </dependency>
+        <!-- test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <version>${spring-boot.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <profile>
+            <id>spring-boot-3</id>
+            <properties>
+                <spring-boot.version>3.2.5</spring-boot.version>
+                <!-- Spring Boot 3.2 ships Java 17 bytecode (class version 61).
+                     The starter must compile against Java 17 in this profile.
+                     spider-core and other modules stay on Java 8. -->
+                <spider.starter.java.version>17</spider.starter.java.version>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <source>${spider.starter.java.version}</source>
+                            <target>${spider.starter.java.version}</target>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
