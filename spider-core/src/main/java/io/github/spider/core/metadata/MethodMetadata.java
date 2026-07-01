@@ -3,9 +3,7 @@ package io.github.spider.core.metadata;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -27,7 +25,6 @@ public class MethodMetadata {
     private Set<Class<? extends Throwable>> retryOn = new HashSet<>();
     private Set<Integer> ignoreStatus = new HashSet<>();
     private Type returnType;
-    private Map<String, String> staticHeaders = new LinkedHashMap<>();
 
     public MethodMetadata() {}
 
@@ -44,7 +41,6 @@ public class MethodMetadata {
     public MethodMetadata addRetryOn(Class<? extends Throwable> ex) { this.retryOn.add(ex); return this; }
     public MethodMetadata addIgnoreStatus(int status) { this.ignoreStatus.add(status); return this; }
     public MethodMetadata returnType(Type returnType) { this.returnType = returnType; return this; }
-    public MethodMetadata addStaticHeader(String key, String value) { this.staticHeaders.put(key, value); return this; }
 
     public MethodMetadata addParamBinding(ParamBinding binding) {
         this.paramBindings.add(binding);
@@ -65,7 +61,6 @@ public class MethodMetadata {
     public Set<Class<? extends Throwable>> retryOn() { return retryOn; }
     public Set<Integer> ignoreStatus() { return ignoreStatus; }
     public Type returnType() { return returnType; }
-    public Map<String, String> staticHeaders() { return staticHeaders; }
 
     /** 是否允许重试。GET 是幂等的，POST 默认不重试。 */
     public boolean isRetryable() {
