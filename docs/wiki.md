@@ -28,7 +28,7 @@ Spider 是一个 Java 微服务的**声明式服务调用治理中间件**。通
 <dependency>
     <groupId>io.github.hdkjcom.spider</groupId>
     <artifactId>spider-spring-boot-starter</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 

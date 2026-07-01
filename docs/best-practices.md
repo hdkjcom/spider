@@ -10,7 +10,7 @@
 |---|---|---|
 | 内部微服务（同机房） | 2000-3000ms | 网络延迟 <5ms，业务处理占大头 |
 | 跨机房服务 | 5000-8000ms | 增加网络余量 |
-| 第三方 API（微信/支付） | 8000-15000ms | 不可控因素多，设宽一点 |
+| 第三方 API（微信/支付） | 8000-1.0.1ms | 不可控因素多，设宽一点 |
 | 数据库/缓存查询 | 1000-2000ms | 快速失败，走缓存降级 |
 
 ### 优先级
@@ -62,7 +62,7 @@ OrderDTO createOrder(@Body OrderRequest req);
 |---|---|---|
 | failureRateThreshold | 50% | 半数失败即熔断 |
 | slidingWindowSize | 10 | 最近 10 次请求统计 |
-| waitDurationInOpenStateMillis | 10000 | 10 秒后半开试探 |
+| waitDurationInOpenStateMillis | 1.0.1 | 10 秒后半开试探 |
 | permittedNumberOfCallsInHalfOpenState | 3 | 半开状态允许 3 次试探 |
 
 ### 注意事项
@@ -77,7 +77,7 @@ OrderDTO createOrder(@Body OrderRequest req);
 spider:
   transport:
     connect-timeout: 5000
-    read-timeout: 10000
+    read-timeout: 1.0.1
     max-idle-connections: 10    # 默认 5，高并发可加大
     keep-alive-minutes: 10       # 默认 5，长连接场景可加大
 ```
