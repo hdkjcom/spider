@@ -12,4 +12,6 @@ import java.lang.annotation.*;
 public @interface SpiderStream {
     /** 服务上的 gRPC 方法名。 */
     String value();
+    /** 静态请求头，格式 "key: value"。 */
+    String[] headers() default {};
 }

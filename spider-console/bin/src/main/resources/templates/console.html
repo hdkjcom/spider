@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spider Console</title>
+<script>
+  (function () {
+    var saved = localStorage.getItem('spider-console-theme');
+    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.dataset.theme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="/spider-console.css?v=1.0.0">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      <div>
+        <div class="brand-main">Spider Console</div>
+        <div class="brand-sub">1.0.0</div>
+      </div>
+    </div>
+    <div class="nav-section" data-i18n="section.monitor">监控</div>
+    <button class="nav-button active" data-view="overview"><span data-i18n="nav.overview">概览</span> <span class="nav-kpi" id="navTotal">0</span></button>
+    <button class="nav-button" data-view="clients"><span data-i18n="nav.clients">客户端</span> <span class="nav-kpi" id="navClients">0</span></button>
+    <button class="nav-button" data-view="reports"><span data-i18n="nav.reports">最近上报</span> <span class="nav-kpi" id="navReports">0</span></button>
+    <button class="nav-button" data-view="breakers"><span data-i18n="nav.breakers">熔断器</span> <span class="nav-kpi" id="navBreakers">0</span></button>
+    <div class="nav-section" data-i18n="section.resources">资源</div>
+    <button class="nav-button" data-view="services"><span data-i18n="nav.services">服务</span> <span class="nav-kpi" id="navServices">0</span></button>
+  </aside>
+
+  <main class="content">
+    <header class="topbar">
+      <div class="title">
+        <h1 id="pageTitle">概览</h1>
+        <p id="pageSubtitle">调用、错误、延迟和治理状态</p>
+      </div>
+      <div class="top-actions">
+        <select class="field mobile-nav" id="mobileView">
+          <option value="overview" data-i18n="nav.overview">概览</option>
+          <option value="clients" data-i18n="nav.clients">客户端</option>
+          <option value="reports" data-i18n="nav.reports">最近上报</option>
+          <option value="breakers" data-i18n="nav.breakers">熔断器</option>
+          <option value="services" data-i18n="nav.services">服务</option>
+        </select>
+        <div class="status"><span class="dot" id="healthDot"></span><span id="healthText">连接中</span></div>
+        <div class="status"><span data-i18n="label.refresh">刷新</span> <strong id="lastRefresh">-</strong></div>
+        <button class="btn" id="langToggle" type="button">English</button>
+        <button class="btn" id="themeToggle" type="button">深色</button>
+        <button class="btn" id="refreshBtn" type="button" data-i18n="action.refresh">刷新</button>
+      </div>
+    </header>
+
+    <section class="page">
+      <div class="summary" id="summary"></div>
+
+      <div class="toolbar">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-view="overview" type="button" data-i18n="nav.overview">概览</button>
+          <button class="tab" data-view="clients" type="button" data-i18n="nav.clients">客户端</button>
+          <button class="tab" data-view="reports" type="button" data-i18n="nav.reports">最近上报</button>
+          <button class="tab" data-view="breakers" type="button" data-i18n="nav.breakers">熔断器</button>
+          <button class="tab" data-view="services" type="button" data-i18n="nav.services">服务</button>
+        </div>
+        <div class="filters">
+          <select class="field" id="serviceFilter">
+            <option value="" data-i18n="filter.allServices">全部服务</option>
+          </select>
+          <input class="field" id="searchBox" placeholder="搜索客户端、服务或方法" data-i18n-placeholder="filter.search" autocomplete="off">
+        </div>
+      </div>
+
+      <div id="view-overview">
+        <div class="grid-2">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <div class="panel-title" data-i18n="panel.clientHealth">客户端健康度</div>
+                <div class="panel-note" id="clientNote">-</div>
+              </div>
+            </div>
+            <div class="table-wrap" id="overviewTable"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <div class="panel-title" data-i18n="panel.governance">治理状态</div>
+                <div class="panel-note" data-i18n="panel.governanceNote">熔断、追踪与上报状态</div>
+              </div>
+            </div>
+            <div class="state-grid" id="governancePanel"></div>
+          </section>
+        </div>
+        <section class="panel mt-14">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title" data-i18n="panel.recentReports">最近上报</div>
+              <div class="panel-note" data-i18n="panel.recentReportsNote">最新 8 条指标快照</div>
+            </div>
+          </div>
+          <div class="table-wrap" id="recentOverviewTable"></div>
+        </section>
+      </div>
+
+      <div id="view-clients" hidden>
+        <section class="panel">
+          <div class="panel-head"><div><div class="panel-title" data-i18n="panel.clientDetails">客户端明细</div><div class="panel-note" id="clientDetailNote">-</div></div></div>
+          <div class="table-wrap" id="clientTable"></div>
+        </section>
+      </div>
+
+      <div id="view-reports" hidden>
+        <section class="panel">
+          <div class="panel-head"><div><div class="panel-title" data-i18n="panel.recentReports">最近上报</div><div class="panel-note" id="reportNote">-</div></div></div>
+          <div class="table-wrap" id="reportTable"></div>
+        </section>
+      </div>
+
+      <div id="view-breakers" hidden>
+        <section class="panel">
+          <div class="panel-head"><div><div class="panel-title" data-i18n="panel.breakers">熔断器状态</div><div class="panel-note" id="breakerNote">-</div></div></div>
+          <div id="breakerPanel"></div>
+        </section>
+      </div>
+
+      <div id="view-services" hidden>
+        <section class="panel">
+          <div class="panel-head"><div><div class="panel-title" data-i18n="panel.services">已上报服务</div><div class="panel-note" id="serviceNote">-</div></div></div>
+          <div class="table-wrap" id="serviceTable"></div>
+        </section>
+      </div>
+    </section>
+
+    <footer class="footer">Spider Console 1.0.0 · Java 8+ · Apache 2.0</footer>
+  </main>
+</div>
+<script src="/spider-console.js?v=1.0.0"></script>
+</body>
+</html>
+
