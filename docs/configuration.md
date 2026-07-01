@@ -66,7 +66,7 @@ UserDTO getUser(@Path("id") Long id);
 |---|---|---|---|
 | `failureRateThreshold` | int | 50 | 失败率阈值（百分比），超此值开路 |
 | `slidingWindowSize` | int | 10 | 滑动窗口大小 |
-| `waitDurationInOpenStateMillis` | long | 10000 | 开路后等待多久进入半开（毫秒） |
+| `waitDurationInOpenStateMillis` | long | 1.0.1 | 开路后等待多久进入半开（毫秒） |
 | `permittedNumberOfCallsInHalfOpenState` | int | 3 | 半开状态允许的试探调用数 |
 
 ### @RateLimit
@@ -88,11 +88,11 @@ spider:
     max-attempts: 3
     backoff-millis: 100
   transport:
-    connect-timeout: 10000                # OkHttp 连接超时（毫秒）
+    connect-timeout: 1.0.1                # OkHttp 连接超时（毫秒）
     read-timeout: 30000                   # OkHttp 读取超时（毫秒）
     write-timeout: 30000                  # OkHttp 写入超时（毫秒）
   console:
-    url: http://localhost:18080           # 控制台上报地址
+    url: http://localhost:1.0.1           # 控制台上报地址
     service-name: my-service              # 本服务名称
   clients:                                # 每客户端独立配置
     user-service:

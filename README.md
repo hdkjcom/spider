@@ -44,13 +44,13 @@ Spider = **Declarative Remote Call** + **Elastic Governance** + **Contract Prote
 <dependency>
     <groupId>io.github.hdkjcom.spider</groupId>
     <artifactId>spider-spring-boot-starter</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 
 <!-- Plain Java: three dependencies -->
-<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-core</artifactId><version>1.0.0</version></dependency>
-<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-http</artifactId><version>1.0.0</version></dependency>
-<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-jackson</artifactId><version>1.0.0</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-core</artifactId><version>1.0.1</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-http</artifactId><version>1.0.1</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-jackson</artifactId><version>1.0.1</version></dependency>
 ```
 
 ### Define a client
@@ -206,7 +206,7 @@ See [Configuration Reference](docs/configuration.md) for all options.
 ```yaml
 spider:
   console:
-    url: http://spider-console:18080
+    url: http://spider-console:1.0.1
     service-name: order-service
 ```
 

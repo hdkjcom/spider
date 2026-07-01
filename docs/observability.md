@@ -34,7 +34,7 @@
 # 各业务服务
 spider:
   console:
-    url: http://spider-console:18080
+    url: http://spider-console:1.0.1
     service-name: order-service
 ```
 

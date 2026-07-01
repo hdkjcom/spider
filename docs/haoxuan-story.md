@@ -35,7 +35,7 @@ PM 在钉钉上发了三个字：「用户服务。」
 <dependency>
     <groupId>io.github.hdkjcom.spider</groupId>
     <artifactId>spider-spring-boot-starter</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 
@@ -176,7 +176,7 @@ spider:
       retry:
         max-attempts: 2
     wechat-api:
-      timeout: 10000
+      timeout: 1.0.1
       retry:
         max-attempts: 1
 ```
