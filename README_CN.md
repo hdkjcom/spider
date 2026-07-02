@@ -251,6 +251,14 @@ mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.spider.demo.SpiderDemo
 - [SPI 扩展指南](docs/spi.md)
 - [可观测性](docs/observability.md)
 
+## 贡献
+
+欢迎参与贡献 —— Spider 同时托管在 [Gitee](https://gitee.com/suxuZZR/spider) 和 [GitHub](https://github.com/hdkjcom/spider)。
+
+- **第一次参与？** 完整流程见 [CONTRIBUTING.md](CONTRIBUTING.md)（Fork → 分支 → PR）。
+- **一句话流程：** fork → 从 `dev` 切 `feature/xxx` → 提 PR **到 `dev`**。
+- **新手友好：** 找带 `good first issue` / `help wanted` 标签的 Issue；从补测试、改文档、加 demo 入手。
+
 ## 许可证
 
 Apache 2.0
