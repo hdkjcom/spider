@@ -34,7 +34,7 @@ git pull upstream dev
 git checkout -b feature/xxx
 ```
 
-命名：全小写连字符英文，≤4 个单词。`feature/circuit-breaker-dynamic` ✅  `feature/v1` ❌
+命名：全小写连字符英文，≤4 个单词。例如 `feature/circuit-breaker-dynamic` 合规，`feature/v1` 不合规。
 
 ### 第三步：开发与测试
 

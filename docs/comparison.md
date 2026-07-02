@@ -12,24 +12,24 @@
 
 | 能力 | Spider | OpenFeign | Retrofit |
 |---|---|---|---|
-| 声明式注解 | ✅ `@SpiderGet` | ✅ `@GetMapping` | ✅ `@GET` |
-| PATH/QUERY/HEADER/BODY 绑定 | ✅ | ✅ | ✅ |
-| 超时控制 | ✅ `@Timeout` | ⚠️ 需配置 OkHttpClient | ✅ `@Headers` |
-| 重试策略 | ✅ `@Retry`(GET/5xx重试/4xx不重试/指数退避/异常类型/状态码) | ⚠️ 需 Spring Retry | ⚠️ 需 OkHttp Interceptor |
-| **熔断器** | ✅ `@SpiderCircuitBreaker` (内置+Resilience4j) | ❌ 需 Sentinel/Hystrix | ❌ 需额外库 |
-| **限流** | ✅ `@RateLimit` (Resilience4j) | ❌ | ❌ |
-| **降级 Fallback** | ✅ `fallback` + `fallbackFactory`(含异常) | ✅ `fallback`(Spring Cloud) | ❌ |
-| **拦截器** | ✅ `SpiderInterceptor`(before/after/onError) | ✅ `RequestInterceptor` | ✅ `Interceptor` |
-| **指标 Micrometer** | ✅ 5 个内置指标 | ⚠️ 需额外集成 | ❌ |
-| **链路追踪 OpenTelemetry** | ✅ `TracingInterceptor` | ⚠️ 需 Sleuth/Micrometer Tracing | ❌ |
-| **熔断器状态暴露** | ✅ 内置 | ❌ | ❌ |
-| **服务发现** | ✅ Simple + Nacos + SPI | ⚠️ 需 Spring Cloud LoadBalancer | ❌ |
-| **gRPC 传输** | ✅ `GrpcSpiderTransport` | ❌ | ❌ |
-| **契约校验** | ✅ `ContractInterceptor` | ❌ | ❌ |
-| **Spring Boot 集成** | ✅ `@EnableSpiderClients` 零配置 | ✅ `@EnableFeignClients` | ⚠️ 需手动集成 |
-| **Spring 依赖** | ❌ 不依赖 (core 零 Spring) | ✅ 强依赖 Spring | ❌ 不依赖 |
+| 声明式注解 | `@SpiderGet` | `@GetMapping` | `@GET` |
+| PATH/QUERY/HEADER/BODY 绑定 | 支持 | 支持 | 支持 |
+| 超时控制 | `@Timeout` | 需配置 OkHttpClient | `@Headers` |
+| 重试策略 | `@Retry`(GET/5xx重试/4xx不重试/指数退避/异常类型/状态码) | 需 Spring Retry | 需 OkHttp Interceptor |
+| **熔断器** | `@SpiderCircuitBreaker` (内置+Resilience4j) | 需 Sentinel/Hystrix | 需额外库 |
+| **限流** | `@RateLimit` (Resilience4j) | 不支持 | 不支持 |
+| **降级 Fallback** | `fallback` + `fallbackFactory`(含异常) | `fallback`(Spring Cloud) | 不支持 |
+| **拦截器** | `SpiderInterceptor`(before/after/onError) | `RequestInterceptor` | `Interceptor` |
+| **指标 Micrometer** | 5 个内置指标 | 需额外集成 | 不支持 |
+| **链路追踪 OpenTelemetry** | `TracingInterceptor` | 需 Sleuth/Micrometer Tracing | 不支持 |
+| **熔断器状态暴露** | 内置 | 不支持 | 不支持 |
+| **服务发现** | Simple + Nacos + SPI | 需 Spring Cloud LoadBalancer | 不支持 |
+| **gRPC 传输** | `GrpcSpiderTransport` | 不支持 | 不支持 |
+| **契约校验** | `ContractInterceptor` | 不支持 | 不支持 |
+| **Spring Boot 集成** | `@EnableSpiderClients` 零配置 | `@EnableFeignClients` | 需手动集成 |
+| **Spring 依赖** | 不依赖 (core 零 Spring) | 强依赖 Spring | 不依赖 |
 | **Java 版本** | Java 8+ | Java 8+ | Java 8+ |
-| **OpenAPI 代码生成** | ✅ `spider-codegen` | ⚠️ 第三方 | ❌ |
+| **OpenAPI 代码生成** | `spider-codegen` | 第三方 | 不支持 |
 
 ## 性能对比
 
