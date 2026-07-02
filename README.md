@@ -295,6 +295,14 @@ Requires JDK 8+, Maven 3.6+.
 - [SPI Extension Guide](docs/spi.md)
 - [Observability](docs/observability.md)
 
+## Contributing
+
+Contributions are welcome — Spider is dual-hosted on [Gitee](https://gitee.com/suxuZZR/spider) and [GitHub](https://github.com/hdkjcom/spider).
+
+- **New here?** Read [CONTRIBUTING.md](CONTRIBUTING.md) for the full Fork → Branch → PR flow.
+- **TL;DR:** fork → branch `feature/xxx` off `dev` → open a PR **targeting `dev`**.
+- **First-timers:** look for `good first issue` / `help wanted` labels; start with tests, docs, or demos.
+
 ## License
 
 Apache 2.0
