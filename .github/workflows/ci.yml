@@ -23,11 +23,9 @@ jobs:
           distribution: temurin
           cache: maven
       - name: Build & Test
-        # -pl '!spider-demo': 排除 demo 模块，其 E2E 有 Jackson String 编码遗留失败，
-        #   作为独立任务修复，不阻塞主线的回归保护网。
         # -Dgpg.skip=true: 根 pom 的 maven-gpg-plugin 绑定 verify 阶段，CI 无签名密钥，必须跳过。
-        run: mvn test -B -Dgpg.skip=true -pl '!spider-demo'
+        run: mvn test -B -Dgpg.skip=true
       - name: Package (compile integrity)
-        run: mvn package -B -DskipTests -Dgpg.skip=true -pl '!spider-demo'
+        run: mvn package -B -DskipTests -Dgpg.skip=true
       - name: Dependency Analysis
         run: mvn dependency:analyze -B || true

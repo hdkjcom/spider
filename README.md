@@ -1,5 +1,7 @@
 # Spider
 
+![CI](https://github.com/hdkjcom/spider/actions/workflows/ci.yml/badge.svg)
+
 > [**中文**](README_CN.md) | English
 
 Declarative Service Invocation Governance Middleware for Java Microservices.
