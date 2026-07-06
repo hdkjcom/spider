@@ -281,6 +281,17 @@ Requires JDK 8+, Maven 3.6+.
 | Spring dependency | Zero (core) | Required |
 | Java | 8+ | 8+ |
 
+## Performance
+
+Spider 代理在本地回环 HTTP server 下与原生 OkHttp 同条件对比，QPS 通常在原生 OkHttp 的 **85–95%** 之间（即代理开销 5–15%），额外耗时主要来自 JDK 动态代理、9 个可插拔 filter 管道及 Micrometer 指标采集。关闭 metrics 或减少 filter 数量可进一步缩小差距。
+
+复现基准：
+```bash
+mvn exec:java -pl spider-benchmark -Dexec.mainClass=io.github.spider.benchmark.SpiderBenchmark
+```
+
+另见 `SpiderJmhBenchmark` —— 基于 JMH 的规范微基准。
+
 ## Design Principles
 
 - Interface declaration separated from execution logic
