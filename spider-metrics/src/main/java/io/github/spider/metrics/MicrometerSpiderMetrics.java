@@ -52,6 +52,8 @@ public class MicrometerSpiderMetrics implements SpiderMetrics {
                 .tag("client", clientName).tag("method", methodName)
                 .tag("outcome", "success")
                 .description("Spider invocation duration")
+                .publishPercentiles(0.5, 0.9, 0.99)
+                .publishPercentileHistogram()
                 .register(registry)).record(response.elapsedMillis(), TimeUnit.MILLISECONDS);
     }
 

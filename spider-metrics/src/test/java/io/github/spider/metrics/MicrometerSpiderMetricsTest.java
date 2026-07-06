@@ -3,6 +3,7 @@ package io.github.spider.metrics;
 import io.github.spider.core.metrics.SpiderMetrics;
 import io.github.spider.core.transport.SpiderRequest;
 import io.github.spider.core.transport.SpiderResponse;
+import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 
@@ -106,6 +107,21 @@ class MicrometerSpiderMetricsTest {
                 .tag("method", "a").tag("outcome", "success").counter().count());
         assertEquals(1.0, registry.get("spider.client.requests")
                 .tag("method", "b").tag("outcome", "success").counter().count());
+    }
+
+    @Test
+    void testDurationTimerPublishesPercentiles() {
+        SpiderResponse response = new SpiderResponse().statusCode(200).elapsedMillis(10);
+        for (int i = 0; i < 50; i++) {
+            metrics.recordSuccess("pct-client", "m", new SpiderRequest(), response);
+        }
+        Timer timer = registry.get("spider.client.duration")
+                .tag("client", "pct-client")
+                .tag("method", "m")
+                .timer();
+        // publishPercentiles(0.5, 0.9, 0.99) 让快照携带 p50/p90/p99 三个百分位值，
+        // Prometheus 可直接抓取或经 histogram_quantile 计算
+        assertEquals(3, timer.takeSnapshot().percentileValues().length);
     }
 
     @Test
