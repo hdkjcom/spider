@@ -115,6 +115,14 @@ public class SpiderAutoConfiguration {
                 if (cc.getTimeout() != null) cfg.put("timeout", cc.getTimeout());
                 cfg.put("retry.maxAttempts", cc.getRetry().getMaxAttempts());
                 cfg.put("retry.backoffMillis", cc.getRetry().getBackoffMillis());
+                if (cc.getCircuitBreaker() != null) {
+                    Map<String, Object> cb = new HashMap<>();
+                    cb.put("failureRateThreshold", cc.getCircuitBreaker().getFailureRateThreshold());
+                    cb.put("slidingWindowSize", cc.getCircuitBreaker().getSlidingWindowSize());
+                    cb.put("waitDurationInOpenStateMillis", cc.getCircuitBreaker().getWaitDurationInOpenStateMillis());
+                    cb.put("permittedNumberOfCallsInHalfOpenState", cc.getCircuitBreaker().getPermittedNumberOfCallsInHalfOpenState());
+                    cfg.put("circuitBreaker", cb);
+                }
                 clientConfigs.put(entry.getKey(), cfg);
             }
         }

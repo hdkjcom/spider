@@ -125,6 +125,8 @@ public class SpiderProperties {
         private Integer timeout;
         /** 覆盖客户端重试配置。 */
         private RetryConfig retry = new RetryConfig();
+        /** 覆盖客户端熔断配置；设置后该客户端自动启用 CountingCircuitBreaker。 */
+        private CircuitBreakerConfig circuitBreaker;
 
         public String getUrl() { return url; }
         public void setUrl(String url) { this.url = url; }
@@ -132,5 +134,30 @@ public class SpiderProperties {
         public void setTimeout(Integer timeout) { this.timeout = timeout; }
         public RetryConfig getRetry() { return retry; }
         public void setRetry(RetryConfig retry) { this.retry = retry; }
+        public CircuitBreakerConfig getCircuitBreaker() { return circuitBreaker; }
+        public void setCircuitBreaker(CircuitBreakerConfig circuitBreaker) { this.circuitBreaker = circuitBreaker; }
+    }
+
+    /**
+     * 熔断器配置（对应 CountingCircuitBreaker 的阈值参数）。
+     */
+    public static class CircuitBreakerConfig {
+        /** 失败率阈值（百分比，0-100）。 */
+        private int failureRateThreshold = 50;
+        /** 滑动窗口大小（样本数）。 */
+        private int slidingWindowSize = 10;
+        /** OPEN 状态冷却等待时间（毫秒）。 */
+        private long waitDurationInOpenStateMillis = 60000;
+        /** HALF_OPEN 状态允许的试探调用数。 */
+        private int permittedNumberOfCallsInHalfOpenState = 3;
+
+        public int getFailureRateThreshold() { return failureRateThreshold; }
+        public void setFailureRateThreshold(int v) { this.failureRateThreshold = v; }
+        public int getSlidingWindowSize() { return slidingWindowSize; }
+        public void setSlidingWindowSize(int v) { this.slidingWindowSize = v; }
+        public long getWaitDurationInOpenStateMillis() { return waitDurationInOpenStateMillis; }
+        public void setWaitDurationInOpenStateMillis(long v) { this.waitDurationInOpenStateMillis = v; }
+        public int getPermittedNumberOfCallsInHalfOpenState() { return permittedNumberOfCallsInHalfOpenState; }
+        public void setPermittedNumberOfCallsInHalfOpenState(int v) { this.permittedNumberOfCallsInHalfOpenState = v; }
     }
 }

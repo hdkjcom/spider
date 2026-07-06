@@ -119,23 +119,6 @@ public class SpiderClientFactory {
         SpiderClient ann = clientInterface.getAnnotation(SpiderClient.class);
         if (ann == null) throw new SpiderConfigurationException(clientInterface.getName() + " must be annotated with @SpiderClient");
 
-        SpiderTransport effectiveTransport = this.transport;
-        if (circuitBreaker != null) {
-            effectiveTransport = new CircuitBreakerTransport(effectiveTransport, circuitBreaker);
-        } else {
-            io.github.spider.core.annotation.SpiderCircuitBreaker cbAnn =
-                    clientInterface.getAnnotation(io.github.spider.core.annotation.SpiderCircuitBreaker.class);
-            if (cbAnn != null) {
-                CountingCircuitBreaker cb = new CountingCircuitBreaker(cbAnn);
-                effectiveTransport = new CircuitBreakerTransport(effectiveTransport, cb);
-                SpiderRuntime.getInstance().registerCircuitBreaker(ann.name(), cb);
-            }
-        }
-
-        if (circuitBreaker != null) {
-            SpiderRuntime.getInstance().registerCircuitBreaker(ann.name(), circuitBreaker);
-        }
-
         String name = ann.name();
         String baseUrl = urlOverride != null ? urlOverride : ann.url();
 
@@ -158,6 +141,27 @@ public class SpiderClientFactory {
                 effectiveBackoffMillis = ((Number) clientCfg.get("retry.backoffMillis")).longValue();
             }
         }
+
+        // 解析熔断器，优先级：builder 显式提供 > per-client properties > @SpiderCircuitBreaker 注解
+        SpiderCircuitBreaker effectiveCb = circuitBreaker;
+        if (effectiveCb == null) {
+            Object cbCfg = clientCfg != null ? clientCfg.get("circuitBreaker") : null;
+            if (cbCfg instanceof Map) {
+                effectiveCb = createBreakerFromConfig((Map<String, Object>) cbCfg);
+            } else {
+                io.github.spider.core.annotation.SpiderCircuitBreaker cbAnn =
+                        clientInterface.getAnnotation(io.github.spider.core.annotation.SpiderCircuitBreaker.class);
+                if (cbAnn != null) {
+                    effectiveCb = new CountingCircuitBreaker(cbAnn);
+                }
+            }
+        }
+        if (effectiveCb != null) {
+            SpiderRuntime.getInstance().registerCircuitBreaker(name, effectiveCb);
+        }
+        SpiderTransport effectiveTransport = effectiveCb != null
+                ? new CircuitBreakerTransport(this.transport, effectiveCb)
+                : this.transport;
 
         Map<Method, MethodMetadata> meta = new HashMap<>();
         Map<Method, Object> fallbacks = new HashMap<>();
@@ -209,6 +213,23 @@ public class SpiderClientFactory {
                 try { fb.getMethod(m.getName(), m.getParameterTypes()); map.put(m, f); } catch (NoSuchMethodException ignored) {}
             }
         } catch (Exception e) { throw new SpiderConfigurationException("Failed to create fallback: " + fb.getName(), e); }
+    }
+
+    /** 从 per-client properties 映射构造 CountingCircuitBreaker。 */
+    private static CountingCircuitBreaker createBreakerFromConfig(Map<String, Object> cfg) {
+        int threshold = asInt(cfg.get("failureRateThreshold"), 50);
+        int window = asInt(cfg.get("slidingWindowSize"), 10);
+        long wait = asLong(cfg.get("waitDurationInOpenStateMillis"), 60000L);
+        int halfOpen = asInt(cfg.get("permittedNumberOfCallsInHalfOpenState"), 3);
+        return new CountingCircuitBreaker(threshold, window, wait, halfOpen);
+    }
+
+    private static int asInt(Object o, int def) {
+        return o instanceof Number ? ((Number) o).intValue() : def;
+    }
+
+    private static long asLong(Object o, long def) {
+        return o instanceof Number ? ((Number) o).longValue() : def;
     }
 
     public static Builder builder() { return new Builder(); }

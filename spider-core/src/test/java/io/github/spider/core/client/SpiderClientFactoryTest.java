@@ -9,6 +9,9 @@ import io.github.spider.core.transport.SpiderResponse;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -298,5 +301,34 @@ class SpiderClientFactoryTest {
         Pojo result = future.get(5, TimeUnit.SECONDS);
         assertEquals("alice", result.name);
         assertEquals(30, result.age);
+    }
+
+    @SpiderClient(name = "cb-config-test", url = "http://localhost:8080")
+    interface CbConfigClient {
+        @SpiderGet("/hello")
+        String hello();
+    }
+
+    @Test
+    void testCircuitBreakerFromClientConfig() {
+        Map<String, Object> cb = new HashMap<>();
+        cb.put("failureRateThreshold", 20);
+        cb.put("slidingWindowSize", 5);
+        cb.put("waitDurationInOpenStateMillis", 1000L);
+        cb.put("permittedNumberOfCallsInHalfOpenState", 1);
+        Map<String, Object> cfg = new HashMap<>();
+        cfg.put("circuitBreaker", cb);
+
+        SpiderClientFactory factory = SpiderClientFactory.builder()
+                .transport(request -> new SpiderResponse().statusCode(200))
+                .clientConfigs(Collections.<String, Map<String, Object>>singletonMap("cb-config-test", cfg))
+                .build();
+
+        factory.create(CbConfigClient.class);
+
+        // per-client properties 配置了熔断器，应生成并注册 CountingCircuitBreaker
+        assertTrue(io.github.spider.core.runtime.SpiderRuntime.getInstance()
+                        .circuitBreakerStates().containsKey("cb-config-test"),
+                "spider.clients.<name>.circuit-breaker 配置应生成并注册 CountingCircuitBreaker");
     }
 }
