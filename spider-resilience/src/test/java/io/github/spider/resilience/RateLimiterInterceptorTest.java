@@ -31,4 +31,14 @@ class RateLimiterInterceptorTest {
         RateLimit ann = TestConfig.class.getAnnotation(RateLimit.class);
         assertEquals(2, ann.permits());
     }
+
+    @Test
+    void testReconfigureChangesLimitForPeriod() throws Exception {
+        RateLimit ann = TestConfig.class.getAnnotation(RateLimit.class);
+        RateLimiterInterceptor interceptor = new RateLimiterInterceptor("test-reconfigure", ann);
+        assertEquals(2, interceptor.delegate().getRateLimiterConfig().getLimitForPeriod());
+        // 运行时把每周期许可数从 2 调到 10
+        interceptor.reconfigure(10);
+        assertEquals(10, interceptor.delegate().getRateLimiterConfig().getLimitForPeriod());
+    }
 }

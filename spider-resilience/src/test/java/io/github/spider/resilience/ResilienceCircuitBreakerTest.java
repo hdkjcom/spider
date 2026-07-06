@@ -53,4 +53,17 @@ class ResilienceCircuitBreakerTest {
         ResilienceCircuitBreaker cb = create();
         assertNotNull(cb.delegate());
     }
+
+    @Test
+    void testReconfigureChangesThresholdDynamically() throws Exception {
+        ResilienceCircuitBreaker cb = create();
+        // 运行时调到极敏感：threshold=1, window=5
+        cb.reconfigure(1, 5, 200, 1);
+        for (int i = 0; i < 5; i++) {
+            cb.recordFailure(new RuntimeException("error-" + i));
+        }
+        // 5 次失败填满 window 5，失败率 100% >> 1% → 熔断打开
+        assertEquals(SpiderCircuitBreaker.State.OPEN, cb.state());
+        assertFalse(cb.isAllowed());
+    }
 }

@@ -98,4 +98,20 @@ class CountingCircuitBreakerTest {
 
         assertEquals(SpiderCircuitBreaker.State.CLOSED, cb.state());
     }
+
+    @Test
+    void testReconfigureLowersThresholdDynamically() throws Exception {
+        CountingCircuitBreaker cb = create();
+        // 运行时把阈值调到更敏感：threshold=20, window=5
+        cb.reconfigure(20, 5, 100, 2);
+        // 2 失败 + 2 成功 + 1 失败：第 5 次 recordFailure 填满 window 5，
+        // 失败率 3/5 = 60% >= 20% → 熔断打开
+        RuntimeException e = new RuntimeException("error");
+        cb.recordFailure(e);
+        cb.recordFailure(e);
+        cb.recordSuccess();
+        cb.recordSuccess();
+        cb.recordFailure(e);
+        assertEquals(SpiderCircuitBreaker.State.OPEN, cb.state());
+    }
 }
