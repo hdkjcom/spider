@@ -99,6 +99,16 @@ const i18n = {
       recoveryProbe: '正在探测恢复',
       requestsAllowed: '允许请求通过'
     },
+    sla: {
+      availability: '可用性',
+      latencyP99: 'P99 延迟',
+      errorRate: '错误率',
+      target: '目标',
+      ok: '达标',
+      breach: '违约',
+      noData: '无数据',
+      note: '自进程启动以来的快照，非滚动窗口 SLA'
+    },
     langToggle: 'English',
     themeToggle: { light: '深色', dark: '浅色' }
   },
@@ -201,6 +211,16 @@ const i18n = {
       requestsBlocked: 'Requests are blocked',
       recoveryProbe: 'Recovery probe in progress',
       requestsAllowed: 'Requests are allowed'
+    },
+    sla: {
+      availability: 'Availability',
+      latencyP99: 'P99 Latency',
+      errorRate: 'Error Rate',
+      target: 'Target',
+      ok: 'Met',
+      breach: 'Breached',
+      noData: 'No data',
+      note: 'Snapshot since process start, not a rolling-window SLA'
     },
     langToggle: '中文',
     themeToggle: { light: 'Dark', dark: 'Light' }
@@ -307,6 +327,7 @@ function setView(view) {
 }
 
 function render() {
+  renderSla(state.data.sla);
   const clients = filteredClients();
   const allClients = Object.values(state.data.clients || {});
   const services = state.data.services || [];
@@ -370,6 +391,34 @@ function renderSummary(clients, services, breakers) {
 
 function metric(label, value, foot, color) {
   return `<div class="metric"><div class="metric-label">${label}</div><div class="metric-value ${color || ''}">${value}</div><div class="metric-foot">${foot}</div></div>`;
+}
+
+function renderSla(sla) {
+  const el = document.getElementById('sla');
+  if (!el) return;
+  if (!sla || !sla.availability) { el.innerHTML = ''; return; }
+  const L = i18n[state.lang].sla;
+  el.innerHTML = [
+    slaCard(L.availability, sla.availability, '≥'),
+    slaCard(L.latencyP99, sla.latencyP99, '≤'),
+    slaCard(L.errorRate, sla.errorRate, '≤')
+  ].join('');
+  el.title = L.note;
+}
+
+function slaCard(label, ind, cmp) {
+  if (!ind) return '';
+  const L = i18n[state.lang].sla;
+  const tone = ind.status === 'OK' ? 'ok' : ind.status === 'BREACH' ? 'breach' : 'none';
+  const valueText = ind.status === 'NO_DATA' ? '—'
+    : ind.value + (ind.unit === 'ms' ? ' ms' : '%');
+  const targetText = cmp + ' ' + ind.target + (ind.unit === 'ms' ? ' ms' : '%');
+  const statusText = ind.status === 'OK' ? L.ok : ind.status === 'BREACH' ? L.breach : L.noData;
+  return `<div class="sla-card sla-${tone}">
+    <div class="sla-head"><span class="sla-dot sla-dot-${tone}"></span>${label}</div>
+    <div class="sla-value">${valueText}</div>
+    <div class="sla-target">${L.target} ${targetText} · ${statusText}</div>
+  </div>`;
 }
 
 function renderClientTables(clients) {

@@ -18,6 +18,8 @@ public class DashboardDto {
     private List<Map<String, Object>> recentReports = new ArrayList<>();
     /** 数据生成时间 */
     private Date time = new Date();
+    /** SLA 达标快览（对照 SLO 目标） */
+    private SlaDto sla;
 
     public List<String> getServices() { return services; }
     public void setServices(List<String> services) { this.services = services; }
@@ -31,4 +33,6 @@ public class DashboardDto {
     public void setRecentReports(List<Map<String, Object>> recentReports) { this.recentReports = recentReports; }
     public Date getTime() { return time; }
     public void setTime(Date time) { this.time = time; }
+    public SlaDto getSla() { return sla; }
+    public void setSla(SlaDto sla) { this.sla = sla; }
 }
