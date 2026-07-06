@@ -1,6 +1,5 @@
 package io.github.spider.spring.boot.autoconfigure;
 
-import io.github.spider.core.annotation.RateLimit;
 import io.github.spider.core.interceptor.SpiderInterceptor;
 import io.github.spider.resilience.RateLimiterInterceptor;
 import io.github.spider.resilience.ResilienceCircuitBreaker;

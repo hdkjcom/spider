@@ -1,7 +1,5 @@
 package io.github.spider.core.codec;
 
-import java.lang.reflect.Type;
-
 /**
  * 请求体编码 SPI（例如 Java 对象 → JSON 字节数组）。
  */

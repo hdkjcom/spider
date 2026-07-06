@@ -1,8 +1,6 @@
 package io.github.spider.config;
 
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.List;
 
 /**
  * 动态配置中心的 SPI 接口（支持 Nacos、Apollo、Consul KV 等配置源）。

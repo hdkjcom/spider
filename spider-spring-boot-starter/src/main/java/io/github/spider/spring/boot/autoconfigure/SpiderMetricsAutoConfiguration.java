@@ -1,6 +1,5 @@
 package io.github.spider.spring.boot.autoconfigure;
 
-import io.github.spider.core.interceptor.SpiderInterceptor;
 import io.github.spider.core.metrics.SpiderMetrics;
 import io.github.spider.metrics.MicrometerSpiderMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
