@@ -1,6 +1,7 @@
 package io.github.spider.console.controller;
 
 import io.github.spider.console.dto.*;
+import io.github.spider.console.sla.SlaCalculator;
 import io.github.spider.core.runtime.SpiderRuntime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,16 @@ public class ReportController {
     /** 嵌入式模式下的服务名，默认取 spring.application.name */
     @Value("${spider.console.service-name:${spring.application.name:unknown}}")
     private String localServiceName;
+
+    /** SLO 目标：可用性百分比，默认 99.9。 */
+    @Value("${spider.console.slo.availability:99.9}")
+    private double sloAvailability;
+    /** SLO 目标：P99 延迟阈值（毫秒），默认 500。 */
+    @Value("${spider.console.slo.latency-p99-ms:500}")
+    private double sloLatencyP99;
+    /** SLO 目标：错误率百分比上限，默认 1.0。 */
+    @Value("${spider.console.slo.error-rate:1.0}")
+    private double sloErrorRate;
 
     @PostMapping("/report")
     public ReportResult report(@RequestBody ReportPayload payload) {
@@ -170,6 +181,7 @@ public class ReportController {
             dto.setRecentReports(Collections.emptyList());
         }
         dto.setTime(new Date());
+        dto.setSla(SlaCalculator.compute(dto.getClients().values(), sloAvailability, sloLatencyP99, sloErrorRate));
         return dto;
     }
 
