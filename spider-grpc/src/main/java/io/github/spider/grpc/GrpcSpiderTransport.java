@@ -27,6 +27,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class GrpcSpiderTransport implements SpiderTransport {
 
+    /** 流式调用超时时，取消底层 gRPC call 使用的原因标识。 */
+    private static final String CANCEL_REASON_TIMEOUT = "timeout";
+
     private final ManagedChannel channel;
     private final Map<String, GrpcMethodBinding> bindings = new ConcurrentHashMap<>();
 
@@ -151,18 +154,18 @@ public class GrpcSpiderTransport implements SpiderTransport {
                     public void onNext(DynamicMessage value) {
                         try {
                             String json = JsonFormat.printer().print(value);
-                            responseQueue.add(new StreamItem(json, null, false));
+                            responseQueue.add(new StreamItem(StreamItem.Type.MESSAGE, json));
                         } catch (Exception e) {
                             onError(e);
                         }
                     }
                     @Override
                     public void onError(Throwable t) {
-                        responseQueue.add(new StreamItem(null, t.getMessage(), false));
+                        responseQueue.add(new StreamItem(StreamItem.Type.ERROR, t.getMessage()));
                     }
                     @Override
                     public void onCompleted() {
-                        responseQueue.add(new StreamItem(null, null, true));
+                        responseQueue.add(new StreamItem(StreamItem.Type.COMPLETED, null));
                     }
                 });
 
@@ -176,14 +179,21 @@ public class GrpcSpiderTransport implements SpiderTransport {
                 if (next != null) return true;
                 try {
                     StreamItem item = responseQueue.poll(30, TimeUnit.SECONDS);
-                    if (item == null) { call.cancel("timeout", null); return false; }
-                    if (item.done) { done = true; call.cancel(null, null); return false; }
-                    if (item.error != null) {
-                        call.cancel(item.error, null);
-                        throw new RuntimeException(item.error);
+                    if (item == null) { call.cancel(CANCEL_REASON_TIMEOUT, null); return false; }
+                    switch (item.type) {
+                        case COMPLETED:
+                            done = true;
+                            call.cancel(null, null);
+                            return false;
+                        case ERROR:
+                            call.cancel(item.payload, null);
+                            throw new RuntimeException(item.payload);
+                        case MESSAGE:
+                            next = item.payload;
+                            return true;
+                        default:
+                            return false;
                     }
-                    next = item.json;
-                    return true;
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return false;
@@ -203,14 +213,16 @@ public class GrpcSpiderTransport implements SpiderTransport {
     // ---- 内部类型 ----
 
     private static class StreamItem {
-        final String json;
-        final String error;
-        final boolean done;
+        /** 流式项类型：MESSAGE=正常响应，ERROR=错误，COMPLETED=流结束。 */
+        enum Type { MESSAGE, ERROR, COMPLETED }
 
-        StreamItem(String json, String error, boolean done) {
-            this.json = json;
-            this.error = error;
-            this.done = done;
+        final Type type;
+        /** MESSAGE 时为 JSON 文本，ERROR 时为错误消息，COMPLETED 时为 null。 */
+        final String payload;
+
+        StreamItem(Type type, String payload) {
+            this.type = type;
+            this.payload = payload;
         }
     }
 
