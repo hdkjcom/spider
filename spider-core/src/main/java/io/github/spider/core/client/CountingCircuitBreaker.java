@@ -17,10 +17,12 @@ public class CountingCircuitBreaker implements SpiderCircuitBreaker {
 
     private static final Logger log = LoggerFactory.getLogger(CountingCircuitBreaker.class);
 
-    private final int failureRateThreshold;
-    private final int slidingWindowSize;
-    private final long waitDurationInOpenStateMillis;
-    private final int permittedNumberOfCallsInHalfOpenState;
+    // 阈值参数声明为 volatile：支持运行时 reconfigure() 动态刷新，保证多线程可见性。
+    // 状态机（currentState / openedAt / 计数器）仍由 AtomicReference / synchronized 保护。
+    private volatile int failureRateThreshold;
+    private volatile int slidingWindowSize;
+    private volatile long waitDurationInOpenStateMillis;
+    private volatile int permittedNumberOfCallsInHalfOpenState;
 
     private final AtomicInteger successCount = new AtomicInteger(0);
     private final AtomicInteger failureCount = new AtomicInteger(0);
@@ -119,6 +121,16 @@ public class CountingCircuitBreaker implements SpiderCircuitBreaker {
     @Override
     public State state() {
         return currentState.get();
+    }
+
+    @Override
+    public void reconfigure(int failureRateThreshold, int slidingWindowSize,
+                            long waitDurationInOpenStateMillis,
+                            int permittedNumberOfCallsInHalfOpenState) {
+        this.failureRateThreshold = failureRateThreshold;
+        this.slidingWindowSize = slidingWindowSize;
+        this.waitDurationInOpenStateMillis = waitDurationInOpenStateMillis;
+        this.permittedNumberOfCallsInHalfOpenState = permittedNumberOfCallsInHalfOpenState;
     }
 
     private void resetWindow() {

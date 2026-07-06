@@ -71,6 +71,27 @@ public class RateLimiterInterceptor implements SpiderInterceptor {
     }
 
     /**
+     * 运行时调整每个刷新周期的许可数，委托给 Resilience4j 的 {@link RateLimiter#changeLimitForPeriod}。
+     * 用于动态治理：配置中心变更后无需重建客户端即可调整限流。
+     *
+     * @param permits 每周期新的许可数
+     */
+    public void reconfigure(int permits) {
+        rateLimiter.changeLimitForPeriod(permits);
+    }
+
+    /**
+     * 运行时调整许可数和获取许可的超时时间。
+     *
+     * @param permits 每周期新的许可数
+     * @param timeoutMillis 获取许可的超时时间（毫秒）
+     */
+    public void reconfigure(int permits, long timeoutMillis) {
+        rateLimiter.changeLimitForPeriod(permits);
+        rateLimiter.changeTimeoutDuration(Duration.ofMillis(timeoutMillis));
+    }
+
+    /**
      * 暴露底层 Resilience4j {@link RateLimiter} 实例，供高级用户直接使用。
      *
      * @return 底层 Resilience4j RateLimiter 实例
