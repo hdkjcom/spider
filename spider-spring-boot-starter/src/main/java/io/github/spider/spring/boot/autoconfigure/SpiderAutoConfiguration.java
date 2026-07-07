@@ -113,8 +113,10 @@ public class SpiderAutoConfiguration {
                 SpiderProperties.ClientConfig cc = entry.getValue();
                 if (cc.getUrl() != null) cfg.put("url", cc.getUrl());
                 if (cc.getTimeout() != null) cfg.put("timeout", cc.getTimeout());
-                cfg.put("retry.maxAttempts", cc.getRetry().getMaxAttempts());
-                cfg.put("retry.backoffMillis", cc.getRetry().getBackoffMillis());
+                if (cc.getRetry() != null) {
+                    cfg.put("retry.maxAttempts", cc.getRetry().getMaxAttempts());
+                    cfg.put("retry.backoffMillis", cc.getRetry().getBackoffMillis());
+                }
                 if (cc.getCircuitBreaker() != null) {
                     Map<String, Object> cb = new HashMap<>();
                     cb.put("failureRateThreshold", cc.getCircuitBreaker().getFailureRateThreshold());

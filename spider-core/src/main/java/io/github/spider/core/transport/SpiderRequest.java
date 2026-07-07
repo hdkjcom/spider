@@ -16,8 +16,8 @@ public class SpiderRequest {
     private String method;
     private String url;
     private String path;
-    private Map<String, List<String>> queryParams = new HashMap<>();
-    private Map<String, List<String>> headers = new HashMap<>();
+    private Map<String, List<String>> queryParams = new LinkedHashMap<>();
+    private Map<String, List<String>> headers = new LinkedHashMap<>();
     private byte[] body;
     private int timeoutMillis;
     private Map<String, Object> attributes = new HashMap<>();

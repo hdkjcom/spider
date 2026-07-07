@@ -74,7 +74,7 @@ public class ResilienceCircuitBreaker implements SpiderCircuitBreaker {
      */
     @Override
     public void recordFailure(Throwable throwable) {
-        delegate.onError(System.currentTimeMillis(), TimeUnit.MILLISECONDS, throwable);
+        delegate.onError(0, TimeUnit.MILLISECONDS, throwable);
     }
 
     /**

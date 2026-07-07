@@ -169,7 +169,7 @@ public class ReportController {
                     snap.put("fallbacks", s.fallbackCount.get());
                     snap.put("p99", s.latencyPercentile(99));
                     long c = s.callCount.get();
-                    snap.put("successRate", c > 0 ? String.format("%.1f%%", 100.0 * s.successCount.get() / c) : "N/A");
+                    snap.put("successRate", c > 0 ? String.format("%.1f", 100.0 * s.successCount.get() / c) : "N/A");
                     snap.put("reportTime", new Date());
                     snapshots.add(snap);
                 }
