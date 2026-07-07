@@ -1,5 +1,8 @@
 package io.github.spider.core.transport;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -50,7 +53,8 @@ public class SpiderRequest {
     public SpiderRequest attribute(String key, Object value) { attributes.put(key, value); return this; }
     public Map<String, Object> attributes() { return attributes; }
 
-    /** Assembles the full URL: {@code baseUrl + path}. */
+    /** Assembles the full URL: {@code baseUrl + path + queryString}.
+     *  Query 参数用 UTF-8 编码（支持 @Query 注解值含特殊字符，如微信 js_code）。 */
     public String fullUrl() {
         StringBuilder sb = new StringBuilder();
         if (url != null) sb.append(url.replaceAll("/$", ""));
@@ -58,6 +62,26 @@ public class SpiderRequest {
             if (!path.startsWith("/")) sb.append('/');
             sb.append(path);
         }
+        if (queryParams != null && !queryParams.isEmpty()) {
+            sb.append('?');
+            boolean first = true;
+            for (Map.Entry<String, List<String>> e : queryParams.entrySet()) {
+                for (String v : e.getValue()) {
+                    if (!first) sb.append('&');
+                    first = false;
+                    sb.append(encode(e.getKey())).append('=').append(encode(v));
+                }
+            }
+        }
         return sb.toString();
+    }
+
+    private static String encode(String s) {
+        if (s == null) return "";
+        try {
+            return URLEncoder.encode(s, StandardCharsets.UTF_8.name());
+        } catch (UnsupportedEncodingException e) {
+            return s;
+        }
     }
 }
