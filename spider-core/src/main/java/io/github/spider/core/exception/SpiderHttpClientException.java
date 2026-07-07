@@ -9,6 +9,10 @@ public class SpiderHttpClientException extends SpiderHttpException {
         super(statusCode, message);
     }
 
+    public SpiderHttpClientException(int statusCode, String message, byte[] body) {
+        super(statusCode, message, body);
+    }
+
     @Override
     public ErrorCategory category() {
         return ErrorCategory.HTTP_CLIENT;

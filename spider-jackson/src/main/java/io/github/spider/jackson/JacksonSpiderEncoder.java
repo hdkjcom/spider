@@ -1,6 +1,7 @@
 package io.github.spider.jackson;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
 import io.github.spider.core.codec.SpiderEncoder;
 
 /**
@@ -44,6 +45,14 @@ public class JacksonSpiderEncoder implements SpiderEncoder {
     public byte[] encode(Object object) throws Exception {
         if (object == null) {
             return new byte[0];
+        }
+        // String / byte[] 视为已是目标格式（通常是调用方传入的已序列化 JSON），
+        // 原样编码，避免 Jackson 对 String 再加引号转义破坏 body
+        if (object instanceof String) {
+            return ((String) object).getBytes(StandardCharsets.UTF_8);
+        }
+        if (object instanceof byte[]) {
+            return (byte[]) object;
         }
         return objectMapper.writeValueAsBytes(object);
     }
