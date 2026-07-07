@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.github.spider.core.codec.SpiderDecoder;
+import io.github.spider.core.exception.SpiderDecodeException;
 
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
@@ -61,6 +62,12 @@ public class JacksonSpiderDecoder implements SpiderDecoder {
             }
         }
         JavaType javaType = objectMapper.getTypeFactory().constructType(returnType);
-        return objectMapper.readValue(bodyBytes, javaType);
+        try {
+            return objectMapper.readValue(bodyBytes, javaType);
+        } catch (JsonProcessingException e) {
+            // 包装为不可重试的解码异常，避免被 RetryFilter 当成 IOException 重试风暴
+            throw new SpiderDecodeException(
+                    "Failed to decode response body to " + returnType + ": " + e.getOriginalMessage(), e);
+        }
     }
 }

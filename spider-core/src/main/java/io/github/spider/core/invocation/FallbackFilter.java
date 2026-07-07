@@ -40,7 +40,7 @@ public class FallbackFilter implements SpiderInvocationFilter {
             if (fallbackOrFactory != null) {
                 try {
                     metrics.recordFallback(ctx.clientName(), ctx.method().getName());
-                    SpiderRuntime.getInstance().recordFallback(ctx.clientName());
+                    SpiderRuntime.getInstance().recordFallback(ctx.clientName(), ctx.method().getName());
                     log.info("{} {} 触发降级", ctx.clientName(), ctx.request() != null
                             ? ctx.request().fullUrl() : ctx.method().getName());
                     Object fallbackInstance = resolveFallback(fallbackOrFactory, cause);

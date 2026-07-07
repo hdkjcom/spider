@@ -81,12 +81,12 @@ public class RetryFilter implements SpiderInvocationFilter {
                         && ctx.methodMetadata().shouldRetryOn(e)) {
                     ctx.incrementRetryCount();
                     metrics.recordRetry(ctx.clientName(), ctx.method().getName(), i + 1, e);
-                    SpiderRuntime.getInstance().recordRetry(ctx.clientName());
+                    SpiderRuntime.getInstance().recordRetry(ctx.clientName(), ctx.method().getName());
                     sleepBackoff(ctx, i + 1);
                 }
 
             } catch (SpiderConfigurationException | SpiderCircuitBreakerOpenException
-                    | SpiderRateLimitException | SpiderHttpClientException e) {
+                    | SpiderRateLimitException | SpiderHttpClientException | SpiderDecodeException e) {
                 // 这些异常永不重试
                 lastException = e;
                 break;
@@ -98,7 +98,7 @@ public class RetryFilter implements SpiderInvocationFilter {
                         && ctx.methodMetadata().shouldRetryOn(e)) {
                     ctx.incrementRetryCount();
                     metrics.recordRetry(ctx.clientName(), ctx.method().getName(), i + 1, e);
-                    SpiderRuntime.getInstance().recordRetry(ctx.clientName());
+                    SpiderRuntime.getInstance().recordRetry(ctx.clientName(), ctx.method().getName());
                     sleepBackoff(ctx, i + 1);
                 }
 
@@ -117,7 +117,7 @@ public class RetryFilter implements SpiderInvocationFilter {
                         && ctx.methodMetadata().shouldRetryOn(e)) {
                     ctx.incrementRetryCount();
                     metrics.recordRetry(ctx.clientName(), ctx.method().getName(), i + 1, e);
-                    SpiderRuntime.getInstance().recordRetry(ctx.clientName());
+                    SpiderRuntime.getInstance().recordRetry(ctx.clientName(), ctx.method().getName());
                     sleepBackoff(ctx, i + 1);
                 }
             }
@@ -143,7 +143,7 @@ public class RetryFilter implements SpiderInvocationFilter {
                 : ctx.methodMetadata().backoffMillis();
         long delay;
         if ("EXPONENTIAL".equalsIgnoreCase(ctx.methodMetadata().backoffStrategy())) {
-            delay = baseBackoff * (1L << (attempt - 1));
+            delay = baseBackoff * (1L << Math.min(attempt - 1, 62));
             long max = ctx.methodMetadata().maxBackoffMillis();
             if (max > 0) {
                 delay = Math.min(delay, max);

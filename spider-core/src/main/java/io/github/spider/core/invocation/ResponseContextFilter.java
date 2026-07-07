@@ -15,12 +15,15 @@ public class ResponseContextFilter implements SpiderInvocationFilter {
         SpiderResponseContext.clear();
         try {
             Object result = chain.next(ctx);
+            // 成功时设置响应，保留到调用方读取（下次调用入口会 clear）。
+            // 不在 finally 里 clear——否则调用方执行 lastResponse() 时已被清空。
             if (ctx.response() != null) {
                 SpiderResponseContext.set(ctx.response());
             }
             return result;
-        } finally {
+        } catch (Throwable t) {
             SpiderResponseContext.clear();
+            throw t;
         }
     }
 }

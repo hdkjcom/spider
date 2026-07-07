@@ -1,6 +1,7 @@
 package io.github.spider.core.metadata;
 
 import io.github.spider.core.codec.SpiderEncoder;
+import io.github.spider.core.exception.SpiderConfigurationException;
 import io.github.spider.core.transport.SpiderRequest;
 
 /**
@@ -33,9 +34,11 @@ public class RequestTemplate {
             Object argValue = args != null ? args[binding.index()] : null;
             switch (binding.kind()) {
                 case PATH:
-                    if (argValue != null) {
-                        path = path.replace("{" + binding.name() + "}", String.valueOf(argValue));
+                    if (argValue == null) {
+                        throw new SpiderConfigurationException(
+                                "Path parameter '" + binding.name() + "' must not be null");
                     }
+                    path = path.replace("{" + binding.name() + "}", String.valueOf(argValue));
                     break;
                 case QUERY:
                     if (argValue != null) {

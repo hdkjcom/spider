@@ -11,6 +11,10 @@ import java.io.IOException;
 /**
  * 带有熔断器逻辑的 SpiderTransport 装饰器。
  * 每次调用前检查熔断器状态；每次调用后记录成功或失败。
+ *
+ * <p>失败认定：5xx 与 IOException 计为熔断失败；4xx（鉴权/参数等客户端错误）计为成功——
+ * 这类是调用方问题而非下游服务故障，不应触发熔断。若需把特定 4xx 也算失败，
+ * 可自定义 {@link SpiderCircuitBreaker} 实现覆盖 recordFailure 判定。
  */
 public class CircuitBreakerTransport implements SpiderTransport {
 
