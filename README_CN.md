@@ -44,13 +44,13 @@ Spider = **声明式远程调用** + **弹性治理** + **契约保护** + **可
 <dependency>
     <groupId>io.github.hdkjcom.spider</groupId>
     <artifactId>spider-spring-boot-starter</artifactId>
-    <version>1.1.1</version>
+    <version>1.1.2</version>
 </dependency>
 
 <!-- 纯 Java 项目：三个依赖 -->
-<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-core</artifactId><version>1.1.1</version></dependency>
-<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-http</artifactId><version>1.1.1</version></dependency>
-<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-jackson</artifactId><version>1.1.1</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-core</artifactId><version>1.1.2</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-http</artifactId><version>1.1.2</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-jackson</artifactId><version>1.1.2</version></dependency>
 ```
 
 ### 定义客户端接口
@@ -165,7 +165,7 @@ public interface PayClient {
 ```yaml
 spider:
   console:
-    url: http://spider-console:1.1.1
+    url: http://spider-console:1.1.2
     service-name: order-service
 ```
 
