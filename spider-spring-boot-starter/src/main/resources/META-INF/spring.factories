@@ -6,5 +6,4 @@ io.github.spider.spring.boot.autoconfigure.SpiderLoadBalancerAutoConfiguration,\
 io.github.spider.spring.boot.autoconfigure.SpiderResilienceAutoConfiguration,\
 io.github.spider.spring.boot.autoconfigure.SpiderConfigAutoConfiguration,\
 io.github.spider.spring.boot.autoconfigure.SpiderNacosAutoConfiguration,\
-io.github.spider.spring.boot.autoconfigure.SpiderContractAutoConfiguration,\
 io.github.spider.spring.boot.autoconfigure.SpiderReporterAutoConfiguration
