@@ -59,12 +59,13 @@ public class RetryFilter implements SpiderInvocationFilter {
                 SpiderResponse response = ctx.response();
                 if (response != null && !response.isSuccessful()) {
                     int sc = response.statusCode();
+                    byte[] respBody = response.bodyBytes();
                     if (sc >= 400 && sc < 500) {
                         throw new SpiderHttpClientException(sc,
-                                "HTTP " + sc + " for " + ctx.request().fullUrl());
+                                "HTTP " + sc + " for " + ctx.request().fullUrl(), respBody);
                     }
                     throw new SpiderHttpServerException(sc,
-                            "HTTP " + sc + " for " + ctx.request().fullUrl());
+                            "HTTP " + sc + " for " + ctx.request().fullUrl(), respBody);
                 }
                 metrics.recordSuccess(ctx.clientName(), ctx.method().getName(), ctx.request(), response);
                 SpiderRuntime.getInstance().recordSuccess(ctx.clientName(), ctx.method().getName());

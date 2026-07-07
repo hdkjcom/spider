@@ -26,8 +26,9 @@ class JacksonSpiderEncoderTest {
 
     @Test
     void testEncodeString() throws Exception {
+        // String 视为已是目标格式（通常是已序列化的 JSON），原样编码不加引号转义
         byte[] bytes = encoder.encode("hello");
-        assertEquals("\"hello\"", new String(bytes));
+        assertEquals("hello", new String(bytes));
     }
 
     static class TestUser {
