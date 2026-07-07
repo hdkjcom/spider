@@ -29,7 +29,9 @@ public abstract class SpiderException extends RuntimeException {
         /** 降级执行失败 */
         FALLBACK,
         /** 契约校验失败 */
-        CONTRACT
+        CONTRACT,
+        /** 响应解码失败（如 JSON 解析错误），不应重试 */
+        DECODE
     }
 
     protected SpiderException(String message) {

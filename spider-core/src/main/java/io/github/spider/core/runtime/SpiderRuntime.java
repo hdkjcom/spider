@@ -63,11 +63,25 @@ public class SpiderRuntime {
     }
 
     public void recordRetry(String clientName) {
+        recordRetry(clientName, "*");
+    }
+
+    /** 记录一次重试（含方法名，写入方法级统计）。 */
+    public void recordRetry(String clientName, String methodName) {
         statsMap.computeIfAbsent(clientName, ClientStats::new).retryCount.incrementAndGet();
+        methodStatsMap.computeIfAbsent(clientName, k -> new ConcurrentHashMap<>())
+                .computeIfAbsent(methodName, k -> new ClientStats(clientName + "#" + k)).retryCount.incrementAndGet();
     }
 
     public void recordFallback(String clientName) {
+        recordFallback(clientName, "*");
+    }
+
+    /** 记录一次降级（含方法名，写入方法级统计）。 */
+    public void recordFallback(String clientName, String methodName) {
         statsMap.computeIfAbsent(clientName, ClientStats::new).fallbackCount.incrementAndGet();
+        methodStatsMap.computeIfAbsent(clientName, k -> new ConcurrentHashMap<>())
+                .computeIfAbsent(methodName, k -> new ClientStats(clientName + "#" + k)).fallbackCount.incrementAndGet();
     }
 
     public void recordLatency(String clientName, long millis) {

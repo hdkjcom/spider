@@ -79,9 +79,9 @@ class ResponseContextFilterTest {
         Object result = filter.filter(ctx, downstreamChain);
 
         assertEquals("result", result);
-        // ResponseContextFilter 的 finally 已清理，验证不残留
-        assertNull(SpiderResponseContext.lastResponse(),
-                "finally 应清理 ThreadLocal，不对外泄露");
+        // 成功时 response 保留在 ThreadLocal，调用方可通过 lastResponse() 读取
+        assertSame(expectedResponse, SpiderResponseContext.lastResponse(),
+                "成功调用后 ThreadLocal 应保留 response 供调用方读取");
     }
 
     @Test

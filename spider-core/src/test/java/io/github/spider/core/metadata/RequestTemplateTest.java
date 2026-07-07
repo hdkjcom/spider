@@ -84,15 +84,14 @@ class RequestTemplateTest {
     }
 
     @Test
-    void testBuildNullArgsHandling() throws Exception {
+    void testBuildNullArgsHandling() {
         MethodMetadata meta = new MethodMetadata()
                 .httpMethod("GET")
                 .pathTemplate("/users/{id}");
         meta.addParamBinding(new ParamBinding(ParamBinding.Kind.PATH, "id", 0));
 
-        SpiderRequest request = template.build(meta, null, "http://localhost:8081");
-
-        // Path variable NOT replaced when args is null
-        assertEquals("/users/{id}", request.path());
+        // PATH 参数为 null 时应及早抛异常，避免 {id} 残留进 URL 导致下游 404
+        assertThrows(io.github.spider.core.exception.SpiderConfigurationException.class,
+                () -> template.build(meta, null, "http://localhost:8081"));
     }
 }
