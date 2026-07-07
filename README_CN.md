@@ -44,13 +44,13 @@ Spider = **声明式远程调用** + **弹性治理** + **契约保护** + **可
 <dependency>
     <groupId>io.github.hdkjcom.spider</groupId>
     <artifactId>spider-spring-boot-starter</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
 </dependency>
 
 <!-- 纯 Java 项目：三个依赖 -->
-<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-core</artifactId><version>1.0.1</version></dependency>
-<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-http</artifactId><version>1.0.1</version></dependency>
-<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-jackson</artifactId><version>1.0.1</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-core</artifactId><version>1.1.0</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-http</artifactId><version>1.1.0</version></dependency>
+<dependency><groupId>io.github.hdkjcom.spider</groupId><artifactId>spider-jackson</artifactId><version>1.1.0</version></dependency>
 ```
 
 ### 定义客户端接口
@@ -165,7 +165,7 @@ public interface PayClient {
 ```yaml
 spider:
   console:
-    url: http://spider-console:1.0.1
+    url: http://spider-console:1.1.0
     service-name: order-service
 ```
 
@@ -234,6 +234,24 @@ mvn exec:java -pl spider-demo -Dexec.mainClass=io.github.spider.demo.SpiderDemo
 | gRPC | 支持 | 不支持 |
 | Spring 依赖 | 核心零依赖 | 强依赖 |
 | Java 版本 | 8+ | 8+ |
+
+## 性能
+
+本地回环 HTTP server、JDK 21 下的微基准（`SpiderBenchmark`，5000 预热 + 20000 测量）：
+
+| | Spider 代理 | 原生 OkHttp |
+|---|---|---|
+| QPS | ~13,200 req/s | ~18,200 req/s |
+| 平均耗时 | ~76 µs/call | ~55 µs/call |
+
+Spider 代理 QPS 约为原生 OkHttp 的 **72.5%**，每次调用额外开销约 **+21 µs（+38%）**，来自 JDK 动态代理、9 个可插拔 filter 管道及 Micrometer 指标采集。注：这是 localhost 微基准（无网络延迟），生产环境下网络 RT 通常远大于 21 µs，代理开销占比会显著缩小。
+
+复现基准：
+```bash
+mvn exec:java -pl spider-benchmark
+```
+
+另见 `SpiderJmhBenchmark` —— 基于 JMH 的规范微基准（`mvn exec:java -pl spider-benchmark -Dexec.mainClass=io.github.spider.benchmark.SpiderJmhBenchmark`）。
 
 ## 设计原则
 
