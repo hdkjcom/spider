@@ -68,4 +68,28 @@ class SpiderRequestTest {
         SpiderRequest req = new SpiderRequest().attribute("traceId", "abc123");
         assertEquals("abc123", req.attributes().get("traceId"));
     }
+
+    @Test
+    void fullUrlAppendsQueryParams() {
+        SpiderRequest req = new SpiderRequest()
+                .url("http://localhost:8081")
+                .path("/sns/jscode2session")
+                .addQueryParam("appid", "wx123")
+                .addQueryParam("grant_type", "code");
+        String url = req.fullUrl();
+        assertTrue(url.startsWith("http://localhost:8081/sns/jscode2session?"), url);
+        assertTrue(url.contains("appid=wx123"), url);
+        assertTrue(url.contains("grant_type=code"), url);
+    }
+
+    @Test
+    void fullUrlEncodesSpecialCharsInQuery() {
+        // js_code 含空格 / + / 斜杠（base64 样）应被 percent-encode，避免破坏 URL
+        SpiderRequest req = new SpiderRequest()
+                .url("http://localhost:8081")
+                .path("/sns/jscode2session")
+                .addQueryParam("js_code", "ab c+ d/");
+        String url = req.fullUrl();
+        assertTrue(url.contains("js_code=ab+c%2B+d%2F"), url);
+    }
 }
