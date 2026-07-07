@@ -1,7 +1,6 @@
 package io.github.spider.spring.boot.autoconfigure;
 
 import io.github.spider.contract.ContractInterceptor;
-import io.github.spider.core.interceptor.SpiderInterceptor;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -23,8 +22,8 @@ public class SpiderContractAutoConfiguration {
      * @return ContractInterceptor 实例
      */
     @Bean
-    @ConditionalOnMissingBean
-    public SpiderInterceptor contractInterceptor() {
+    @ConditionalOnMissingBean(ContractInterceptor.class)
+    public ContractInterceptor contractInterceptor() {
         // null is intentional: no default validator bean is registered;
         // users can supply their own via a ContractValidator bean.
         return new ContractInterceptor(null);

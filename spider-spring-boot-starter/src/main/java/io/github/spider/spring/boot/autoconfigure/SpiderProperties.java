@@ -123,8 +123,8 @@ public class SpiderProperties {
         private String url;
         /** 覆盖客户端级超时（毫秒）。 */
         private Integer timeout;
-        /** 覆盖客户端重试配置。 */
-        private RetryConfig retry = new RetryConfig();
+        /** 覆盖客户端重试配置；null 表示不覆盖（沿用全局 default-retry）。 */
+        private RetryConfig retry;
         /** 覆盖客户端熔断配置；设置后该客户端自动启用 CountingCircuitBreaker。 */
         private CircuitBreakerConfig circuitBreaker;
 
