@@ -72,7 +72,11 @@ public class ContractValidationFilter implements SpiderInvocationFilter {
                     "Contract violation: response body required but empty");
         }
         String[] requiredFields = ann.requiredFields();
-        if (requiredFields.length > 0 && body != null && body.length > 0 && decoder != null) {
+        if (requiredFields.length > 0 && (body == null || body.length == 0)) {
+            throw new SpiderContractViolationException(
+                    "Contract violation: requiredFields configured but response body is empty");
+        }
+        if (requiredFields.length > 0 && decoder != null) {
             Object parsed;
             try {
                 parsed = decoder.decode(body, Object.class);

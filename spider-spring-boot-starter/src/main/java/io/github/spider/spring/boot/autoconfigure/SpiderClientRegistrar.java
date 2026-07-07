@@ -1,6 +1,7 @@
 package io.github.spider.spring.boot.autoconfigure;
 
 import io.github.spider.core.annotation.SpiderClient;
+import io.github.spider.core.exception.SpiderConfigurationException;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
@@ -85,6 +86,10 @@ public class SpiderClientRegistrar implements ImportBeanDefinitionRegistrar, Res
         beanDefinition.setRole(BeanDefinition.ROLE_APPLICATION);
 
         String beanName = StringUtils.uncapitalize(clientName) + "SpiderClient";
+        if (registry.containsBeanDefinition(beanName)) {
+            throw new SpiderConfigurationException(
+                    "Duplicate @SpiderClient name '" + clientName + "': bean '" + beanName + "' already registered");
+        }
         registry.registerBeanDefinition(beanName, beanDefinition);
         // 注册接口全限定名作为别名，支持按类型注入
         registry.registerAlias(beanName, clientInterface.getName());
