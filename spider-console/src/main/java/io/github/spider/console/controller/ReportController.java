@@ -144,12 +144,12 @@ public class ReportController {
 
         // 4. 最近上报
         if (!recentReports.isEmpty()) {
-            dto.setSnapshotCount(recentReports.size());
             synchronized (recentReports) {
                 int from = Math.max(0, recentReports.size() - 50);
                 List<Map<String, Object>> recent = new ArrayList<>(recentReports.subList(from, recentReports.size()));
                 Collections.reverse(recent);
                 dto.setRecentReports(recent);
+                dto.setSnapshotCount(recent.size());
             }
         } else if (!services.isEmpty()) {
             List<Map<String, Object>> snapshots = new ArrayList<>();
@@ -162,14 +162,19 @@ public class ReportController {
                     snap.put("service", localServiceName);
                     snap.put("client", clientName);
                     snap.put("method", me.getKey());
-                    snap.put("calls", s.callCount.get());
+                    long calls = s.callCount.get();
+                    long totalLatency = s.totalLatencyMs.get();
+                    snap.put("calls", calls);
                     snap.put("success", s.successCount.get());
                     snap.put("failure", s.failureCount.get());
                     snap.put("retries", s.retryCount.get());
                     snap.put("fallbacks", s.fallbackCount.get());
+                    snap.put("totalLatencyMs", totalLatency);
+                    snap.put("p50", s.latencyPercentile(50));
+                    snap.put("p90", s.latencyPercentile(90));
                     snap.put("p99", s.latencyPercentile(99));
-                    long c = s.callCount.get();
-                    snap.put("successRate", c > 0 ? String.format("%.1f", 100.0 * s.successCount.get() / c) : "N/A");
+                    snap.put("successRate", calls > 0 ? String.format("%.1f", 100.0 * s.successCount.get() / calls) : "N/A");
+                    snap.put("avgLatencyMs", calls > 0 ? String.format("%.1f", (double) totalLatency / calls) : "0");
                     snap.put("reportTime", new Date());
                     snapshots.add(snap);
                 }

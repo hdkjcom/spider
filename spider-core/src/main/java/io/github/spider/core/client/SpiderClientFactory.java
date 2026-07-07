@@ -142,17 +142,18 @@ public class SpiderClientFactory {
             }
         }
 
-        // 解析熔断器，优先级：builder 显式提供 > per-client properties > @SpiderCircuitBreaker 注解
+        // 解析熔断器，优先级：builder > @SpiderCircuitBreaker 注解 > per-client properties
+        // 与 timeout/retry 一致：接口注解优先于 Spring properties
         SpiderCircuitBreaker effectiveCb = circuitBreaker;
         if (effectiveCb == null) {
-            Object cbCfg = clientCfg != null ? clientCfg.get("circuitBreaker") : null;
-            if (cbCfg instanceof Map) {
-                effectiveCb = createBreakerFromConfig((Map<String, Object>) cbCfg);
+            io.github.spider.core.annotation.SpiderCircuitBreaker cbAnn =
+                    clientInterface.getAnnotation(io.github.spider.core.annotation.SpiderCircuitBreaker.class);
+            if (cbAnn != null) {
+                effectiveCb = new CountingCircuitBreaker(cbAnn);
             } else {
-                io.github.spider.core.annotation.SpiderCircuitBreaker cbAnn =
-                        clientInterface.getAnnotation(io.github.spider.core.annotation.SpiderCircuitBreaker.class);
-                if (cbAnn != null) {
-                    effectiveCb = new CountingCircuitBreaker(cbAnn);
+                Object cbCfg = clientCfg != null ? clientCfg.get("circuitBreaker") : null;
+                if (cbCfg instanceof Map) {
+                    effectiveCb = createBreakerFromConfig((Map<String, Object>) cbCfg);
                 }
             }
         }

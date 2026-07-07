@@ -86,7 +86,8 @@ public class ResilienceCircuitBreaker implements SpiderCircuitBreaker {
     public State state() {
         switch (delegate.getState()) {
             case CLOSED: return State.CLOSED;
-            case OPEN: return State.OPEN;
+            case OPEN:
+            case FORCED_OPEN: return State.OPEN;
             case HALF_OPEN: return State.HALF_OPEN;
             default: return State.CLOSED;
         }

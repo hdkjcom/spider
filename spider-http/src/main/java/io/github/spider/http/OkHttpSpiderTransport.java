@@ -94,8 +94,7 @@ public class OkHttpSpiderTransport implements SpiderTransport {
                 builder.delete();
             }
         } else {
-            // 默认使用 GET
-            builder.get();
+            throw new IllegalArgumentException("Unsupported HTTP method: " + method);
         }
 
         // 添加请求头
