@@ -283,14 +283,21 @@ Requires JDK 8+, Maven 3.6+.
 
 ## Performance
 
-Spider 代理在本地回环 HTTP server 下与原生 OkHttp 同条件对比，QPS 通常在原生 OkHttp 的 **85–95%** 之间（即代理开销 5–15%），额外耗时主要来自 JDK 动态代理、9 个可插拔 filter 管道及 Micrometer 指标采集。关闭 metrics 或减少 filter 数量可进一步缩小差距。
+本地回环 HTTP server、JDK 21 下的微基准（`SpiderBenchmark`，5000 预热 + 20000 测量）：
+
+| | Spider 代理 | 原生 OkHttp |
+|---|---|---|
+| QPS | ~13,200 req/s | ~18,200 req/s |
+| 平均耗时 | ~76 µs/call | ~55 µs/call |
+
+Spider 代理 QPS 约为原生 OkHttp 的 **72.5%**，每次调用额外开销约 **+21 µs（+38%）**，来自 JDK 动态代理、9 个可插拔 filter 管道及 Micrometer 指标采集。注：这是 localhost 微基准（无网络延迟），生产环境下网络 RT 通常远大于 21 µs，代理开销占比会显著缩小。
 
 复现基准：
 ```bash
-mvn exec:java -pl spider-benchmark -Dexec.mainClass=io.github.spider.benchmark.SpiderBenchmark
+mvn exec:java -pl spider-benchmark
 ```
 
-另见 `SpiderJmhBenchmark` —— 基于 JMH 的规范微基准。
+另见 `SpiderJmhBenchmark` —— 基于 JMH 的规范微基准（`mvn exec:java -pl spider-benchmark -Dexec.mainClass=io.github.spider.benchmark.SpiderJmhBenchmark`）。
 
 ## Design Principles
 
