@@ -4,7 +4,7 @@
 
 > [**中文**](README_CN.md) | English
 
-> **Recommended: 1.1.2+.** Earlier versions have known bugs; please upgrade. See CHANGELOG.
+> **Recommended: 1.1.2+.** Earlier versions have known bugs; please upgrade. See [CHANGELOG](CHANGELOG.md).
 
 Declarative Service Invocation Governance Middleware for Java Microservices.
 
