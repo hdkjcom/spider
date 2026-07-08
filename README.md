@@ -4,7 +4,7 @@
 
 > [**中文**](README_CN.md) | English
 
-> **Recommended: 1.1.2+.** Earlier versions have known issues — 1.0.1/1.1.0 lose `@Query` parameters and corrupt `@Body String` bodies; 1.1.1 fixes those but still has Micrometer metrics silently disabled, rate-limiter/contract mutual exclusion, and SLF4J stack conflicts. See CHANGELOG.
+> **Recommended: 1.1.2+.** Earlier versions have known bugs; please upgrade. See CHANGELOG.
 
 Declarative Service Invocation Governance Middleware for Java Microservices.
 
