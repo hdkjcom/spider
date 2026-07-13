@@ -185,7 +185,6 @@ public class SpiderClientFactory {
         filters.add(new RequestBuildFilter(template));
         filters.add(new InterceptorFilter(interceptors));
         filters.add(new FallbackFilter(fallbacks, metrics));
-        filters.add(new MetricsFilter(metrics));
         filters.add(new RetryFilter(metrics));
         filters.add(new TransportFilter(effectiveTransport));
         filters.add(new DecodeFilter(decoder));

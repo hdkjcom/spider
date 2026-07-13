@@ -18,7 +18,7 @@ public class RequestTemplate {
     /**
      * Build a SpiderRequest from metadata, arguments, and the client base URL.
      */
-    public SpiderRequest build(MethodMetadata meta, Object[] args, String baseUrl) throws Exception {
+    public SpiderRequest build(MethodMetadata meta, Object[] args, String baseUrl) {
         SpiderRequest request = new SpiderRequest()
                 .method(meta.httpMethod())
                 .url(baseUrl);
@@ -51,8 +51,23 @@ public class RequestTemplate {
                     }
                     break;
                 case BODY:
-                    if (argValue != null && encoder != null) {
-                        request.body(encoder.encode(argValue));
+                    if (encoder != null) {
+                        // content-type 优先级：@Body.contentType > encoder.contentType()；与 body 是否非空解耦
+                        String ct = binding.contentType();
+                        if (ct == null || ct.isEmpty()) {
+                            ct = encoder.contentType();
+                        }
+                        if (ct != null) {
+                            request.contentType(ct);
+                        }
+                        if (argValue != null) {
+                            try {
+                                request.body(encoder.encode(argValue));
+                            } catch (Exception e) {
+                                throw new SpiderConfigurationException(
+                                        "Failed to encode body parameter: " + e.getMessage(), e);
+                            }
+                        }
                     }
                     break;
             }

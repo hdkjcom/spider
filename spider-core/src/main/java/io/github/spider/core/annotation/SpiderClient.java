@@ -57,7 +57,4 @@ public @interface SpiderClient {
      * 工厂接收失败原因以供检查。
      */
     Class<?> fallbackFactory() default Void.class;
-
-    /** 预留用于未来扩展。 */
-    Class<?> configuration() default Void.class;
 }

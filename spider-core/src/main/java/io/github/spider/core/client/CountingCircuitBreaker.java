@@ -110,8 +110,7 @@ public class CountingCircuitBreaker implements SpiderCircuitBreaker {
             if (total >= slidingWindowSize) {
                 double failureRate = (double) failures / total * 100;
                 if (failureRate >= failureRateThreshold) {
-                    if (currentState.compareAndSet(State.CLOSED, State.OPEN)
-                            || currentState.compareAndSet(State.HALF_OPEN, State.OPEN)) {
+                    if (currentState.compareAndSet(State.CLOSED, State.OPEN)) {
                         openedAt.set(System.currentTimeMillis());
                         log.warn("熔断器打开 (失败率{}%, 阈值{}%)", String.format("%.1f", failureRate), failureRateThreshold);
                     }
