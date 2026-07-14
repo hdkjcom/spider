@@ -46,6 +46,10 @@ public class ReportController {
 
         log.info("收到上报请求，服务={}，条数={}", service, metrics.size());
 
+        // 优先使用上报方提供的采集时间戳，缺失（旧版 reporter 未发送）时回退到接收时刻
+        long reportTimestamp = payload.getTimestamp();
+        Date reportTime = reportTimestamp > 0 ? new Date(reportTimestamp) : new Date();
+
         Map<String, Map<String, Object>> serviceStore = store.computeIfAbsent(service, k -> new ConcurrentHashMap<>());
 
         for (MetricDto m : metrics) {
@@ -67,7 +71,7 @@ public class ReportController {
             long calls = m.getCalls();
             metricMap.put("successRate", calls > 0 ? String.format("%.1f", 100.0 * m.getSuccess() / calls) : "N/A");
             metricMap.put("avgLatencyMs", calls > 0 ? String.format("%.1f", (double) m.getTotalLatencyMs() / calls) : "0");
-            metricMap.put("reportTime", new Date());
+            metricMap.put("reportTime", reportTime);
             serviceStore.put(client + "#" + method, metricMap);
             synchronized (recentReports) {
                 recentReports.add(new LinkedHashMap<>(metricMap));

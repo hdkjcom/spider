@@ -57,4 +57,11 @@ public @interface SpiderClient {
      * 工厂接收失败原因以供检查。
      */
     Class<?> fallbackFactory() default Void.class;
+
+    /**
+     * 预留用于未来扩展，当前未实现。
+     * @deprecated 当前无效，后续版本可能移除，请勿依赖。
+     */
+    @Deprecated
+    Class<?> configuration() default Void.class;
 }
