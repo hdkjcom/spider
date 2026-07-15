@@ -2,6 +2,7 @@ package io.github.spider.http;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import io.github.spider.core.codec.SpiderEncoder;
 import io.github.spider.core.transport.SpiderRequest;
 import io.github.spider.core.transport.SpiderResponse;
 import org.junit.jupiter.api.AfterEach;
@@ -154,5 +155,130 @@ class OkHttpSpiderTransportTest {
 
         assertEquals(500, response.statusCode());
         assertFalse(response.isSuccessful());
+    }
+
+    @Test
+    void testPostUsesRequestContentType() throws Exception {
+        server.createContext("/xml", exchange -> {
+            String ct = exchange.getRequestHeaders().getFirst("Content-Type");
+            byte[] body = ct.getBytes();
+            exchange.sendResponseHeaders(200, body.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(body);
+            }
+        });
+        startServer();
+
+        SpiderRequest request = new SpiderRequest()
+                .method("POST")
+                .url("http://localhost:" + port)
+                .path("/xml")
+                .contentType("application/xml")
+                .body("<x/>".getBytes());
+
+        SpiderResponse response = transport.execute(request);
+
+        assertEquals(200, response.statusCode());
+        assertEquals("application/xml", new String(response.bodyBytes()));
+    }
+
+    @Test
+    void testPostDefaultsToJsonWhenNoContentType() throws Exception {
+        server.createContext("/users", exchange -> {
+            String ct = exchange.getRequestHeaders().getFirst("Content-Type");
+            byte[] body = ct.getBytes();
+            exchange.sendResponseHeaders(200, body.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(body);
+            }
+        });
+        startServer();
+
+        SpiderRequest request = new SpiderRequest()
+                .method("POST")
+                .url("http://localhost:" + port)
+                .path("/users")
+                .body("{}".getBytes());
+
+        SpiderResponse response = transport.execute(request);
+
+        assertEquals(200, response.statusCode());
+        assertEquals(SpiderEncoder.DEFAULT_CONTENT_TYPE, new String(response.bodyBytes()));
+    }
+
+    @Test
+    void testPutUsesRequestContentType() throws Exception {
+        server.createContext("/xml", exchange -> {
+            String ct = exchange.getRequestHeaders().getFirst("Content-Type");
+            byte[] body = ct.getBytes();
+            exchange.sendResponseHeaders(200, body.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(body);
+            }
+        });
+        startServer();
+
+        SpiderRequest request = new SpiderRequest()
+                .method("PUT")
+                .url("http://localhost:" + port)
+                .path("/xml")
+                .contentType("application/xml")
+                .body("<x/>".getBytes());
+
+        SpiderResponse response = transport.execute(request);
+
+        assertEquals(200, response.statusCode());
+        assertEquals("application/xml", new String(response.bodyBytes()));
+    }
+
+    @Test
+    void testDeleteWithBodyUsesRequestContentType() throws Exception {
+        server.createContext("/users/1", exchange -> {
+            String ct = exchange.getRequestHeaders().getFirst("Content-Type");
+            byte[] body = ct.getBytes();
+            exchange.sendResponseHeaders(200, body.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(body);
+            }
+        });
+        startServer();
+
+        SpiderRequest request = new SpiderRequest()
+                .method("DELETE")
+                .url("http://localhost:" + port)
+                .path("/users/1")
+                .contentType("application/xml")
+                .body("<x/>".getBytes());
+
+        SpiderResponse response = transport.execute(request);
+
+        assertEquals(200, response.statusCode());
+        assertEquals("application/xml", new String(response.bodyBytes()));
+    }
+
+    @Test
+    void testMalformedContentTypeFallsBack() throws Exception {
+        server.createContext("/users", exchange -> {
+            String ct = exchange.getRequestHeaders().getFirst("Content-Type");
+            byte[] body = ct.getBytes();
+            exchange.sendResponseHeaders(200, body.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(body);
+            }
+        });
+        startServer();
+
+        SpiderRequest request = new SpiderRequest()
+                .method("POST")
+                .url("http://localhost:" + port)
+                .path("/users")
+                .contentType("garbage")  // 无 "/" → MediaType.parse 返回 null
+                .body("{}".getBytes());
+
+        SpiderResponse response = transport.execute(request);
+
+        assertEquals(200, response.statusCode());
+        // 非法 content-type 兜底为默认 JSON
+        assertEquals(SpiderEncoder.DEFAULT_CONTENT_TYPE, new String(response.bodyBytes()));
     }
 }

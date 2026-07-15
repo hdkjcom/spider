@@ -1,5 +1,6 @@
 package io.github.spider.jackson;
 
+import io.github.spider.core.codec.SpiderEncoder;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -29,6 +30,12 @@ class JacksonSpiderEncoderTest {
         // String 视为已是目标格式（通常是已序列化的 JSON），原样编码不加引号转义
         byte[] bytes = encoder.encode("hello");
         assertEquals("hello", new String(bytes));
+    }
+
+    @Test
+    void testContentType() {
+        // JacksonSpiderEncoder 继承默认 content-type（JSON）
+        assertEquals(SpiderEncoder.DEFAULT_CONTENT_TYPE, encoder.contentType());
     }
 
     static class TestUser {

@@ -64,6 +64,12 @@ class SpiderRequestTest {
     }
 
     @Test
+    void testContentType() {
+        SpiderRequest req = new SpiderRequest().contentType("application/xml");
+        assertEquals("application/xml", req.contentType());
+    }
+
+    @Test
     void testAttribute() {
         SpiderRequest req = new SpiderRequest().attribute("traceId", "abc123");
         assertEquals("abc123", req.attributes().get("traceId"));

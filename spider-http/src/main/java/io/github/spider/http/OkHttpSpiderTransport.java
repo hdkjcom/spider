@@ -1,5 +1,6 @@
 package io.github.spider.http;
 
+import io.github.spider.core.codec.SpiderEncoder;
 import io.github.spider.core.transport.SpiderRequest;
 import io.github.spider.core.transport.SpiderResponse;
 import io.github.spider.core.transport.SpiderTransport;
@@ -23,6 +24,10 @@ import java.util.concurrent.TimeUnit;
 public class OkHttpSpiderTransport implements SpiderTransport {
 
     private final OkHttpClient httpClient;
+
+    /** request 未声明 content-type 或声明值无法解析时的兜底媒体类型。 */
+    private static final MediaType DEFAULT_MEDIA =
+            MediaType.parse(SpiderEncoder.DEFAULT_CONTENT_TYPE);
 
     /**
      * 使用默认超时配置创建 OkHttpSpiderTransport 实例。
@@ -75,21 +80,19 @@ public class OkHttpSpiderTransport implements SpiderTransport {
         if ("GET".equalsIgnoreCase(method)) {
             builder.get();
         } else if ("POST".equalsIgnoreCase(method)) {
+            MediaType mediaType = resolveMediaType(request);
             byte[] body = request.body();
-            RequestBody requestBody = body != null
-                    ? RequestBody.create(body, MediaType.parse("application/json; charset=utf-8"))
-                    : RequestBody.create(new byte[0], MediaType.parse("application/json; charset=utf-8"));
+            RequestBody requestBody = RequestBody.create(body != null ? body : new byte[0], mediaType);
             builder.post(requestBody);
         } else if ("PUT".equalsIgnoreCase(method)) {
+            MediaType mediaType = resolveMediaType(request);
             byte[] body = request.body();
-            RequestBody requestBody = body != null
-                    ? RequestBody.create(body, MediaType.parse("application/json; charset=utf-8"))
-                    : RequestBody.create(new byte[0], MediaType.parse("application/json; charset=utf-8"));
+            RequestBody requestBody = RequestBody.create(body != null ? body : new byte[0], mediaType);
             builder.put(requestBody);
         } else if ("DELETE".equalsIgnoreCase(method)) {
             byte[] body = request.body();
             if (body != null) {
-                builder.delete(RequestBody.create(body, MediaType.parse("application/json; charset=utf-8")));
+                builder.delete(RequestBody.create(body, resolveMediaType(request)));
             } else {
                 builder.delete();
             }
@@ -116,5 +119,19 @@ public class OkHttpSpiderTransport implements SpiderTransport {
                     .bodyBytes(bodyBytes)
                     .elapsedMillis(elapsed);
         }
+    }
+
+    /**
+     * 解析请求的 Content-Type 媒体类型。
+     *
+     * <p>优先使用 {@link SpiderRequest#contentType()}；未声明时回退到
+     * {@link SpiderEncoder#DEFAULT_CONTENT_TYPE}。{@link MediaType#parse(String)} 对格式错误的输入
+     * 返回 null（而非抛异常），此处兜底为 {@link #DEFAULT_MEDIA}，避免发出无 Content-Type 的请求。
+     */
+    private static MediaType resolveMediaType(SpiderRequest request) {
+        String raw = request.contentType() != null
+                ? request.contentType() : SpiderEncoder.DEFAULT_CONTENT_TYPE;
+        MediaType mediaType = MediaType.parse(raw);
+        return mediaType != null ? mediaType : DEFAULT_MEDIA;
     }
 }

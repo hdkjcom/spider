@@ -24,6 +24,9 @@ class DefaultMethodMetadataParserTest {
         @SpiderPost("/users")
         String createUser(@Body CreateRequest body);
 
+        @SpiderPost("/xml")
+        String postXml(@Body(contentType = "application/xml") CreateRequest body);
+
         @SpiderGet("/search")
         String search(@Query("q") String keyword, @Header("Authorization") String token);
 
@@ -82,6 +85,20 @@ class DefaultMethodMetadataParserTest {
         ParamBinding binding = meta.paramBindings().get(0);
         assertEquals(ParamBinding.Kind.BODY, binding.kind());
         assertEquals(0, binding.index());
+        // 默认 @Body（未声明 contentType）解析为空串
+        assertEquals("", binding.contentType());
+    }
+
+    @Test
+    void testParseBodyContentType() throws Exception {
+        Method method = TestClient.class.getMethod("postXml", CreateRequest.class);
+        MethodMetadata meta = parser.parse(method);
+
+        assertNotNull(meta);
+        assertEquals(1, meta.paramBindings().size());
+        ParamBinding binding = meta.paramBindings().get(0);
+        assertEquals(ParamBinding.Kind.BODY, binding.kind());
+        assertEquals("application/xml", binding.contentType());
     }
 
     @Test

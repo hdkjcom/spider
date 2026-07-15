@@ -35,6 +35,33 @@ SpiderClientFactory.builder()
     .build();
 ```
 
+## 自定义 Encoder / Decoder
+
+默认使用 Jackson 编解码 JSON。如需其他格式（XML、protobuf、自定义二进制），实现 `SpiderEncoder` / `SpiderDecoder` 并通过 builder 传入：
+
+```java
+public class XmlEncoder implements SpiderEncoder {
+    @Override
+    public byte[] encode(Object object) throws Exception {
+        return toXml(object);  // 你的序列化逻辑
+    }
+
+    @Override
+    public String contentType() {
+        // 声明本编码器产出的媒体类型；transport 会据此设置 Content-Type 头
+        return "application/xml; charset=utf-8";
+    }
+}
+
+SpiderClientFactory.builder()
+    .transport(new OkHttpSpiderTransport())
+    .encoder(new XmlEncoder())
+    .decoder(new XmlDecoder())
+    .build();
+```
+
+`SpiderEncoder.contentType()` 的默认实现返回 `SpiderEncoder.DEFAULT_CONTENT_TYPE`（`application/json; charset=utf-8`）。非 JSON 编码器应覆盖此方法；返回 `null` 表示不声明，transport 会兜底为默认 JSON。单次调用还可用 `@Body(contentType = "...")` 覆盖（见[配置参考](configuration.md#body)）。
+
 ## 自定义 Interceptor
 
 ```java

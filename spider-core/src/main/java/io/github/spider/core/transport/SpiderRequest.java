@@ -19,6 +19,7 @@ public class SpiderRequest {
     private Map<String, List<String>> queryParams = new LinkedHashMap<>();
     private Map<String, List<String>> headers = new LinkedHashMap<>();
     private byte[] body;
+    private String contentType;
     private int timeoutMillis;
     private Map<String, Object> attributes = new HashMap<>();
 
@@ -35,6 +36,9 @@ public class SpiderRequest {
 
     public SpiderRequest body(byte[] b) { this.body = b; return this; }
     public byte[] body() { return body; }
+
+    public SpiderRequest contentType(String ct) { this.contentType = ct; return this; }
+    public String contentType() { return contentType; }
 
     public SpiderRequest timeoutMillis(int t) { this.timeoutMillis = t; return this; }
     public int timeoutMillis() { return timeoutMillis; }

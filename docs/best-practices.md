@@ -88,6 +88,22 @@ spider:
 - `idleConnections` 接近 0 → 连接不够用，加大 maxIdle
 - `allocatedConnections` 居高不下 → 下游响应慢，检查超时设置
 
+## 请求体与 Content-Type
+
+Spider 默认用 Jackson 把 `@Body` 对象编码为 JSON，Content-Type 为 `application/json; charset=utf-8`。发送非 JSON 请求体有两种方式：
+
+**方式一：单接口覆盖**（适合少量非 JSON 接口）。在 `@Body` 上声明 Content-Type，body 用 `byte[]`/`String` 传入已序列化的内容：
+
+```java
+@SpiderPost("/xml")
+@Timeout(5000)
+String postXml(@Body(contentType = "application/xml") byte[] xml);
+```
+
+**方式二：自定义 Encoder**（适合整个客户端都是非 JSON 格式）。实现 `SpiderEncoder` 并覆盖 `contentType()` 返回实际媒体类型，所有方法自动采用，无需逐个声明。详见 [SPI 扩展指南](spi.md)。
+
+content-type 决定优先级：`@Body.contentType` > encoder 声明 > 框架默认。`JacksonSpiderEncoder` 对 `String` / `byte[]` 类型的 `@Body` 原样透传，不再做 JSON 序列化，因此适合承载已序列化的 XML/protobuf 等内容。
+
 ## 生产检查清单
 
 - [ ] 每个外部接口配置了独立的 `@Timeout`

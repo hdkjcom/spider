@@ -34,6 +34,19 @@
 
 标记方法参数为请求体，由 Encoder 序列化。
 
+| 参数 | 类型 | 默认值 | 说明 |
+|---|---|---|---|
+| `contentType` | String | `""` | 请求体 Content-Type，覆盖 encoder 默认值；空字符串表示用 encoder 声明的媒体类型（通常 `application/json`） |
+
+用于发送非 JSON 请求体：
+
+```java
+@SpiderPost("/xml")
+String postXml(@Body(contentType = "application/xml") byte[] xml);
+```
+
+content-type 决定优先级：`@Body.contentType` > encoder 声明（`SpiderEncoder.contentType()`）> 框架默认（`application/json; charset=utf-8`）。详见 [SPI 扩展指南](spi.md)。
+
 ### @Timeout
 
 | 参数 | 类型 | 默认值 | 说明 |

@@ -11,6 +11,19 @@ class RequestTemplateTest {
     private final SpiderEncoder noopEncoder = obj -> obj.toString().getBytes();
     private final RequestTemplate template = new RequestTemplate(noopEncoder);
 
+    /** 显式声明非 JSON 媒体类型的 encoder（匿名类，用于验证 encoder.contentType() 被采纳）。 */
+    private final SpiderEncoder xmlEncoder = new SpiderEncoder() {
+        @Override
+        public byte[] encode(Object object) throws Exception {
+            return object.toString().getBytes();
+        }
+
+        @Override
+        public String contentType() {
+            return "application/xml";
+        }
+    };
+
     @Test
     void testBuildGetRequest() throws Exception {
         MethodMetadata meta = new MethodMetadata()
@@ -68,6 +81,8 @@ class RequestTemplateTest {
         assertEquals("POST", request.method());
         assertNotNull(request.body());
         assertArrayEquals(bodyContent.getBytes(), request.body());
+        // 无显式声明时，content-type 来自 encoder 默认（lambda 继承 default 方法）
+        assertEquals(SpiderEncoder.DEFAULT_CONTENT_TYPE, request.contentType());
     }
 
     @Test
@@ -93,5 +108,59 @@ class RequestTemplateTest {
         // PATH 参数为 null 时应及早抛异常，避免 {id} 残留进 URL 导致下游 404
         assertThrows(io.github.spider.core.exception.SpiderConfigurationException.class,
                 () -> template.build(meta, null, "http://localhost:8081"));
+    }
+
+    @Test
+    void testBuildPostWithBodyContentTypeOverride() throws Exception {
+        MethodMetadata meta = new MethodMetadata()
+                .httpMethod("POST")
+                .pathTemplate("/xml");
+        // @Body.contentType 通过 4 参 ParamBinding 传入
+        meta.addParamBinding(new ParamBinding(ParamBinding.Kind.BODY, null, 0, "application/xml"));
+
+        SpiderRequest request = template.build(meta, new Object[]{"<x/>"}, "http://localhost:8081");
+
+        assertEquals("application/xml", request.contentType());
+    }
+
+    @Test
+    void testBuildPostWithBodyEmptyContentTypeFallsToEncoder() throws Exception {
+        MethodMetadata meta = new MethodMetadata()
+                .httpMethod("POST")
+                .pathTemplate("/xml");
+        // 空串视为未声明
+        meta.addParamBinding(new ParamBinding(ParamBinding.Kind.BODY, null, 0, ""));
+
+        SpiderRequest request = template.build(meta, new Object[]{"<x/>"}, "http://localhost:8081");
+
+        assertEquals(SpiderEncoder.DEFAULT_CONTENT_TYPE, request.contentType());
+    }
+
+    @Test
+    void testEncoderContentTypeUsedWhenNoOverride() throws Exception {
+        // encoder 显式声明非 JSON 媒体类型，且 @Body 未覆盖 → 采用 encoder 声明
+        RequestTemplate xmlTemplate = new RequestTemplate(xmlEncoder);
+        MethodMetadata meta = new MethodMetadata()
+                .httpMethod("POST")
+                .pathTemplate("/xml");
+        meta.addParamBinding(new ParamBinding(ParamBinding.Kind.BODY, null, 0));
+
+        SpiderRequest request = xmlTemplate.build(meta, new Object[]{"<x/>"}, "http://localhost:8081");
+
+        assertEquals("application/xml", request.contentType());
+    }
+
+    @Test
+    void testBuildPostWithNullBodyArgStillSetsContentType() throws Exception {
+        // content-type 设置与 body 是否非空解耦：argValue=null 但声明了 contentType，仍应设置
+        MethodMetadata meta = new MethodMetadata()
+                .httpMethod("POST")
+                .pathTemplate("/xml");
+        meta.addParamBinding(new ParamBinding(ParamBinding.Kind.BODY, null, 0, "application/xml"));
+
+        SpiderRequest request = template.build(meta, new Object[]{null}, "http://localhost:8081");
+
+        assertEquals("application/xml", request.contentType());
+        assertNull(request.body());
     }
 }

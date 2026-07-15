@@ -109,7 +109,7 @@ public class DefaultMethodMetadataParser implements MethodMetadataParser {
                 } else if (ann instanceof Header) {
                     meta.addParamBinding(new ParamBinding(ParamBinding.Kind.HEADER, ((Header) ann).value(), i));
                 } else if (ann instanceof Body) {
-                    meta.addParamBinding(new ParamBinding(ParamBinding.Kind.BODY, null, i));
+                    meta.addParamBinding(new ParamBinding(ParamBinding.Kind.BODY, null, i, ((Body) ann).contentType()));
                 }
             }
         }
